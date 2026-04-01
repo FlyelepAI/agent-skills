@@ -17,7 +17,7 @@ metadata: {"clawdbot":{"emoji":"🎨","requires":{"envVars":["FLYELEP_SECRET_KEY
 **生成产品详情图（默认）：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "根据上传的图片生成对应的产品图" \
   --file-urls "https://example.com/product.png"
 ```
@@ -25,7 +25,7 @@ python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
 **生成产品主图：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "为这个蓝牙耳机生成一张白底产品主图" \
   --generate-type 100 \
   --detail-number 1 \
@@ -35,7 +35,7 @@ python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
 **使用测试环境：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "生成产品主图" \
   --base-url "https://testclient.flyelep.cn"
 ```
@@ -146,7 +146,7 @@ python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
 **跨境详情图 + 参考图（Amazon，英文，Flyelep 3.0）：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "根据上传的图片生成对应的产品图" \
   --generate-type 200 \
   --poster-type 5 \
@@ -162,7 +162,7 @@ python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
 **中文电商主图（淘宝，中文简体）：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "为这款智能手表生成一张电商主图，突出科技感" \
   --generate-type 100 \
   --poster-type 6 \
@@ -176,7 +176,7 @@ python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
 **使用测试环境快速生成：**
 
 ```bash
-python3 ~/.cursor/skills/flyelep-poster-gen/scripts/generate_poster.py \
+python3 ~/skills/poster/scripts/generate_poster.py \
   --query "为一款无线鼠标生成 Amazon 产品详情图" \
   --base-url "https://testclient.flyelep.cn"
 ```
