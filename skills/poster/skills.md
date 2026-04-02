@@ -13,8 +13,7 @@ description: >-
 
 ## API 接口信息
 
-- **生产环境**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate`
-- **测试环境**: `POST https://testclient.flyelep.cn/prod-api/poster-design/api/v1/poster/generate`
+- **链接地址**: `POST https://testclient.flyelep.cn/prod-api/poster-design/api/v1/poster/generate`
 - **Content-Type**: `application/json`
 - **超时时间**: 建议 300-600 秒（生图需要较长时间）
 
@@ -116,7 +115,7 @@ description: >-
 
 ## 调用示例
 
-**生成产品主图（测试环境）：**
+**生成产品主图：**
 
 ```bash
 curl -X POST "https://testclient.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" \
@@ -132,27 +131,6 @@ curl -X POST "https://testclient.flyelep.cn/prod-api/poster-design/api/v1/poster
     "modelEdition": 3,
     "needText": true,
     "secretKey": "你的密钥"
-  }'
-```
-
-**生成产品详情图（生产环境，带参考图）：**
-
-```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" \
-  -H "Content-Type: application/json" \
-  --max-time 600 \
-  -d '{
-    "query": "根据上传的图片生成对应的产品图",
-    "generateType": 200,
-    "posterType": 5,
-    "platformType": "amazon",
-    "languageType": "英文",
-    "detailPictureNumber": 5,
-    "modelEdition": 3,
-    "needText": true,
-    "secretKey": "你的密钥",
-    "fileUrlList": ["https://example.com/product1.png", "https://example.com/product2.png"],
-    "aspectRatio": "1:1"
   }'
 ```
 
