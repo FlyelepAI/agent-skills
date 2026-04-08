@@ -38,7 +38,7 @@ https://github.com/FlyelepAI/agent-skills
 
 **环境要求：**
 - Python 3
-- 环境变量 `FLYELEP_SECRET_KEY`（从 Flyelep API开放平台获取：https://www.flyelep.cn）
+- 用户需从 Flyelep API 开放平台获取 API 密钥（https://www.flyelep.cn）
 
 **使用示例：**
 
