@@ -12,7 +12,7 @@ description: >-
 - **Content-Type**: `application/json`
 - **超时时间**: 建议 300-600 秒（生图需要较长时间）
 ## 认证方式
-在请求 JSON body 的 `secretKey` 字段中传入 API 密钥。用户需在 Flyelep 平台获取密钥。
+在请求 JSON body 的 `secretKey` 字段中传入 API 密钥。用户需在 Flyelep 平台（https://www.flyelep.cn）获取密钥。
 ## 请求 Body
 ```json
 {
