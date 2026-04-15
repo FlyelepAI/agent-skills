@@ -76,13 +76,34 @@ secretKey: 用户提供的API密钥
 
 ### to（目标语言）
 - 文档要求传整数枚举值，而不是语言名称字符串
-- 当调用方已掌握 Flyelep 文档中的语言枚举映射时，按该映射传入对应整数
-- 如果当前上下文只有“英文、日语、韩语”等自然语言名称，但没有可靠的整数映射表，不要臆造枚举值，应先向用户或接入方确认
+- 目标语言枚举如下：
 
-> **说明**：PDF 文档明确指出 `to` 为“目标语言枚举值”，且列出了完整语言表；当前可提取文本未包含该表的明细，因此此 skill 必须遵循“有映射再传、无映射先确认”的原则，避免因为枚举错误导致接口调用失败。
+| `to` | 语言 |
+|------|------|
+| `0` | 中文 |
+| `1` | 英文 |
+| `2` | 俄语 |
+| `3` | 西班牙语 |
+| `4` | 法语 |
+| `5` | 德语 |
+| `6` | 意大利语 |
+| `7` | 荷兰语 |
+| `8` | 葡萄牙语 |
+| `9` | 越南语 |
+| `10` | 土耳其语 |
+| `11` | 马来语 |
+| `12` | 泰语 |
+| `13` | 波兰语 |
+| `14` | 印度尼西亚语 |
+| `15` | 日语 |
+| `16` | 韩语 |
+| `17` | 繁体中文 |
+
+- 当用户以自然语言表达目标语种时，按上表映射为对应整数后传入
+- 如果用户请求的语言不在上述枚举表中，应明确告知接口当前不支持该目标语言
 
 ## 调用示例
-**自动识别原语言，翻译成目标语言枚举 1：**
+**自动识别原语言，翻译成英文：**
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/translate" \
@@ -96,7 +117,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
   }'
 ```
 
-**指定原语言后进行翻译：**
+**指定原语言后翻译成日语：**
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/translate" \
@@ -105,7 +126,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
   --max-time 300 \
   -d '{
     "imageUrl": "https://example.com/product-poster.jpg",
-    "to": 1,
+    "to": 15,
     "from": "zh"
   }'
 ```
@@ -116,7 +137,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `imageUrl` 无法访问 | 图片 URL 不是公网直链、已过期，或源站限制访问 |
-| `to` 枚举错误 | 目标语言必须使用 Flyelep 文档规定的整数枚举值，不可自行猜测 |
+| `to` 枚举错误 | 目标语言必须使用文档规定的整数枚举值，例如英文=`1`、日语=`15`、韩语=`16` |
 | 翻译结果异常 | 原图文字过小、模糊或遮挡严重，可更换更清晰的源图后重试 |
 | 请求超时 | 源图较大或识别耗时较长时，可适当增大超时时间 |
 
@@ -126,9 +147,9 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 执行时只需要：
 
 1. 收集单张图片 URL `imageUrl`
-2. 确定目标语言对应的整数枚举 `to`
+2. 根据语言枚举表确定目标语言整数 `to`
 3. 原语言未知时传 `from="auto"`
 4. 在请求头中传入 `secretKey`
 5. 调用接口并返回翻译后的图片 URL
 
-如果用户只说“翻译成英文/日文/韩文”，但当前会话没有可靠的目标语言枚举映射，不要硬猜 `to` 的值，应先确认映射后再调用。
+如果用户只说“翻译成英文/日文/韩文”等常见语言，可直接按本技能内的枚举表映射为对应整数后调用；若用户要求的目标语言不在枚举表内，则不要硬猜，需明确告知暂不支持。
