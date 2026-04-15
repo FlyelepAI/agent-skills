@@ -84,9 +84,8 @@ secretKey: 用户提供的API密钥
 
 ### replaceImageUrl
 - 用于提供目标商品图
-- 支持多张图片时，用英文逗号 `,` 分隔
+- 暂时只支持单图
 - 当用户明确说“把原商品换成另一件商品”时，优先传入该字段
-- 虽然文档将其标为可选，但从“商品替换”的语义上，实际最稳妥的做法是提供目标商品图
 
 ### textPrompt
 - 用于补充替换要求，例如材质、颜色、角度、尺寸观感、保留方式
@@ -102,20 +101,6 @@ secretKey: 用户提供的API密钥
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
 ## 调用示例
-**仅通过目标商品图进行替换：**
-
-```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productReplace" \
-  -H "Content-Type: application/json" \
-  -H "secretKey: 你的密钥" \
-  --max-time 300 \
-  -d '{
-    "sourceUrl": "https://example.com/scene_with_old_product.jpg",
-    "replaceImageUrl": "https://example.com/new_product.jpg",
-    "modelType": 1
-  }'
-```
-
 **结合目标商品图与文本约束替换商品：**
 
 ```bash
@@ -127,7 +112,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
     "sourceUrl": "https://example.com/scene_with_old_product.jpg",
     "replaceImageUrl": "https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg",
     "modelType": 1,
-    "textPrompt": "保留原图背景、阴影和摆放位置，将商品替换为新的银色智能手表"
+    "textPrompt": "将商品替换为我上传的图片，颜色为红色"
   }'
 ```
 
