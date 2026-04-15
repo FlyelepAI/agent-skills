@@ -64,8 +64,8 @@ secretKey: 用户提供的API密钥
 ### 条件必传参数
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| replaceImageUrl | - | 场景参考图链接，多张时用英文逗号分隔；与 `textPrompt` 二选一 |
-| textPrompt | - | 用户提示词，描述目标场景；与 `replaceImageUrl` 二选一 |
+| replaceImageUrl | - | 场景参考图链接，多张时用英文逗号分隔|
+| textPrompt | - | 用户提示词，描述目标场景|
 
 ## 参数映射规则
 ### sourceUrl
@@ -82,38 +82,15 @@ secretKey: 用户提供的API密钥
 
 ### replaceImageUrl
 - 用于提供目标场景参考图
-- 支持多张图片时，用英文逗号 `,` 分隔
-- 用户有明确参考场景图时优先传入
+- 暂时只支持单图
 
 ### textPrompt
 - 用自然语言描述目标场景，如风格、环境、光线、氛围、陈列方式
-- 当只有文字描述、没有参考场景图时，传 `textPrompt`
-- 当同时有参考图和文字要求时，可以同时传：参考图负责场景基准，文字负责补充约束
-
-### `replaceImageUrl` 与 `textPrompt` 的关系
-- 文档标注为二选一
-- 但文档示例中同时传了 `replaceImageUrl` 和 `textPrompt`
-- 因此本 skill 采用以下兼容策略：
-  - 至少传其中一个
-  - 若两者都有，允许同时传，以获得更精确控制
+- 参考图负责场景基准，文字负责补充约束
 
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
 ## 调用示例
-**仅用文本描述替换场景：**
-
-```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/sceneReplace" \
-  -H "Content-Type: application/json" \
-  -H "secretKey: 你的密钥" \
-  --max-time 300 \
-  -d '{
-    "sourceUrl": "https://example.com/product.jpg",
-    "textPrompt": "将背景替换为明亮简洁的北欧客厅场景，保留商品主体不变",
-    "modelType": 1
-  }'
-```
-
 **结合参考图与文本描述替换场景：**
 
 ```bash
@@ -136,7 +113,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `modelType` 非 0/1 | 模型类型只支持 `0` 或 `1` |
-| `replaceImageUrl` 与 `textPrompt` 都没传 | 至少提供参考场景图或文字场景描述之一 |
+| `replaceImageUrl` 与 `textPrompt` 都没传或少传 | 两者都需要提供 |
 | 场景效果不理想 | 文字描述过于模糊，可补充风格、光线、空间类型、氛围等信息 |
 | 请求超时 | 原图较大、参考图较多或生成复杂时，可适当增大超时时间 |
 
@@ -147,7 +124,6 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 1. 明确保留项：主体商品、角度、构图、光影关系
 2. 明确替换项：背景环境、风格、空间、色温、陈列方式
-3. 有参考场景图时优先传 `replaceImageUrl`
-4. 有明确审美要求时同时补充 `textPrompt`
+3. `replaceImageUrl`和`textPrompt`皆为必需，两者共同控制生成效果
 
 当用户要求“换背景场景但保留产品不变”时，提示词应明确写出“保留主体不变”；如果用户真正想改的是商品本身而不是背景，应改用商品替换类 skill。
