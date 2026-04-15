@@ -74,7 +74,7 @@ secretKey: 用户提供的API密钥
 
 推荐默认规则：
 
-- 用户未指定增强强度时，默认传 `standard`
+- 用户未指定增强强度时，默认传 `light`
 - 用户强调“尽量自然、轻微增强”时，传 `light`
 - 用户强调“尽可能清晰、强力修复”时，传 `strong`
 
@@ -139,4 +139,4 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 5. 在请求头中传入 `secretKey`
 6. 调用接口并将返回的结果按逗号拆分后逐个展示
 
-当用户只是说“帮我变清晰一点”时，优先使用 `standard`；如果用户已经用过无损放大 skill，但更需要遵守文档里的规格限制和 `light/standard/strong` 语义，则优先使用此技能。
+当用户只是说“帮我变清晰一点”时，优先使用 `light`；如果用户已经用过无损放大 skill，但更需要遵守文档里的规格限制和 `light/standard/strong` 语义，则优先使用此技能。
