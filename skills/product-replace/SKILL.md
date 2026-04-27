@@ -16,7 +16,7 @@ description: >-
 - **超时时间**: 建议 120-300 秒
 
 ## 认证方式
-所有 AI 工具接口均需在请求头中传入 `secretKey`。该密钥需由用户在 Flyelep 开放平台申请获得。
+所有 AI 工具接口均需在请求头中传入 `secretKey`。该密钥需由用户在 Flyelep 开放平台申请获得：https://www.flyelep.cn/controlboard。
 
 请求头示例：
 
