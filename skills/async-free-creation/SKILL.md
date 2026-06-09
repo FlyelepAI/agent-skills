@@ -1,12 +1,12 @@
 ---
-name: async-all-around-creation
+name: async-free-creation
 description: >-
-  通过 Flyelep 异步全能创作接口调用 Image-2 模型生成产品图或创意图。
-  当用户要求异步全能创作、异布全能创作、Image-2 全能创作、根据提示词和参考图生成多张图片时使用此技能。
+  通过 Flyelep 异步自由创作接口调用 Image-2 模型生成产品图或创意图。
+  当用户要求异步自由创作、自由创作、Image-2 自由创作、根据提示词和参考图生成多张图片时使用此技能。
 ---
-# Flyelep 异步全能创作
+# Flyelep 异步自由创作
 
-通过 Flyelep Image-2 全能创作 API 异步生成图片。
+通过 Flyelep Image-2 自由创作 API 异步生成图片。
 
 **重要：这是一个 HTTP API 调用技能。必须通过 HTTP POST 请求调用 API 接口，禁止通过浏览器访问 Flyelep 网站。**
 
@@ -170,7 +170,7 @@ secretKey: 用户提供的API密钥
 
 ## 调用示例
 
-**创建异步全能创作任务：**
+**创建异步自由创作任务：**
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" \
