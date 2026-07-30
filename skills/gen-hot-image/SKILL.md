@@ -125,48 +125,93 @@ secretKey: 用户提供的API密钥
 - **轮询策略**：建议每5-10秒查询一次，超时时间不超过5分钟
 
 ## 调用示例
-- 注意：调用 API 时必须设置 Content-Type 为 `application/json; charset=utf-8`，否则中文会乱码。
-**提交爆款图片复刻任务：**
+- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
+- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
+
+**示例 1：提交爆款图片复刻任务**
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "replaceUrl": "https://example.com/product.png",
+  "sourceUrl": "https://example.com/hot_image.png",
+  "prompt": "突出产品卖点，增强视觉冲击力",
+  "modelType": 9,
+  "ratio": "1:1",
+  "language": "中文简体"
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"replaceUrl":"https://example.com/product.png","sourceUrl":"https://example.com/hot_image.png","prompt":"突出产品卖点，增强视觉冲击力","modelType":9,"ratio":"1:1","language":"中文简体"}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotImage" \
-  -H "Content-Type: application/json; charset=utf-8" \
-  -H "secretKey: 你的密钥" \
-  --max-time 120 \
-  -d '{
-    "replaceUrl": "https://example.com/product.png",
-    "sourceUrl": "https://example.com/hot_image.png",
-    "prompt": "突出产品卖点，增强视觉冲击力",
-    "modelType": 9,
-    "ratio": "1:1",
-    "language": "中文简体"
-  }'
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotImage" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
-**查询任务结果：**
+步骤 3：清理临时文件：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" \
-  -H "Content-Type: application/json" \
-  -H "secretKey: 你的密钥" \
-  --max-time 30 \
-  -d '{
-    "agentGenerateTaskId": "2072922328536604674"
-  }'
+rm payload_temp.json
 ```
 
-**多张产品素材复刻：**
+**示例 2：查询任务结果**
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "agentGenerateTaskId": "2072922328536604674"
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"agentGenerateTaskId":"2072922328536604674"}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotImage" \
-  -H "Content-Type: application/json; charset=utf-8" \
-  -H "secretKey: 你的密钥" \
-  --max-time 120 \
-  -d '{
-    "replaceUrl": "https://example.com/product1.png,https://example.com/product2.png",
-    "sourceUrl": "https://example.com/hot1.png,https://example.com/hot2.png",
-    "prompt": "保持爆款图的配色和构图，将产品自然融入场景",
-    "modelType": 2,
-    "ratio": "3:4",
-    "language": "英文"
-  }'
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
+```
+
+步骤 3：清理临时文件：
+```bash
+rm payload_temp.json
+```
+
+**示例 3：多张产品素材复刻**
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "replaceUrl": "https://example.com/product1.png,https://example.com/product2.png",
+  "sourceUrl": "https://example.com/hot1.png,https://example.com/hot2.png",
+  "prompt": "保持爆款图的配色和构图，将产品自然融入场景",
+  "modelType": 2,
+  "ratio": "3:4",
+  "language": "英文"
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"replaceUrl":"https://example.com/product1.png,https://example.com/product2.png","sourceUrl":"https://example.com/hot1.png,https://example.com/hot2.png","prompt":"保持爆款图的配色和构图，将产品自然融入场景","modelType":2,"ratio":"3:4","language":"英文"}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行：
+```bash
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotImage" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+```
+
+步骤 3：清理临时文件：
+```bash
+rm payload_temp.json
 ```
 
 ## 常见错误及解决方案

@@ -169,34 +169,64 @@ secretKey: 用户提供的API密钥
 - 竖版优先推断为 `9:16`
 
 ## 调用示例
-- 注意：调用 API 时必须设置 Content-Type 为 `application/json; charset=utf-8`，否则中文会乱码。
-**创建异步自由创作任务：**
+- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
+- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
 
+**示例 1：创建异步自由创作任务**
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "aspectRatio": "1:1",
+  "query": "生成钢笔的产品图",
+  "detailPictureNumber": 4,
+  "apiImgUrlList": [
+    "https://example.com/product.png"
+  ]
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" \
-  -H "Content-Type: application/json; charset=utf-8" \
-  -H "secretKey: 你的密钥" \
-  --max-time 300 \
-  -d '{
-    "aspectRatio": "1:1",
-    "query": "生成钢笔的产品图",
-    "detailPictureNumber": 4,
-    "apiImgUrlList": [
-      "https://example.com/product.png"
-    ]
-  }'
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
 
-**查询任务结果：**
-
+步骤 3：清理临时文件：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" \
-  -H "Content-Type: application/json" \
-  -H "secretKey: 你的密钥" \
-  --max-time 300 \
-  -d '{
-    "agentGenerateTaskId": "2054467932287070209"
-  }'
+rm payload_temp.json
+```
+
+**示例 2：查询任务结果**
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "agentGenerateTaskId": "2054467932287070209"
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"agentGenerateTaskId":"2054467932287070209"}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行：
+```bash
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
+```
+
+步骤 3：清理临时文件：
+```bash
+rm payload_temp.json
 ```
 
 ## 执行流程
