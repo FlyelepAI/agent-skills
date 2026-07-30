@@ -89,11 +89,12 @@ secretKey: 用户提供的API密钥
 > **说明**：文档描述中提到“基于掩码图对图片指定区域进行局部重绘”，但当前参数表仅列出 `sourceUrl`、`textPrompt`、`replaceImageUrl`，没有单独的掩码字段。因此本 skill 按文档可见参数执行，不额外构造 mask 参数。
 
 ## 调用示例
+- 注意：调用 API 时必须设置 Content-Type 为 `application/json; charset=utf-8`，否则中文会乱码。
 **仅通过文字提示进行局部重绘：**
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/partialRedrawing" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   -H "secretKey: 你的密钥" \
   --max-time 300 \
   -d '{
@@ -106,7 +107,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/partialRedrawing" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   -H "secretKey: 你的密钥" \
   --max-time 300 \
   -d '{

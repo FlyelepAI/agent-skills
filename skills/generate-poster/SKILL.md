@@ -85,10 +85,11 @@ description: >-
 - 产品单图（`generateType=100`）：固定为 `1`
 - 产品详情图（`generateType=200`）：`5`、`10` 或 `15`
 ## 调用示例
+- 注意：调用 API 时必须设置 Content-Type 为 `application/json; charset=utf-8`，否则中文会乱码。
 **生成产品主图（跨境电商，Amazon）：**
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   --max-time 600 \
   -d '{
     "query": "为这个蓝牙耳机生成一张白底产品主图",
@@ -105,7 +106,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 **生成产品详情图（带参考图）：**
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   --max-time 600 \
   -d '{
     "query": "根据上传的图片生成对应的产品图",
@@ -124,7 +125,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 **中文电商主图（淘宝，中文简体）：**
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   --max-time 600 \
   -d '{
     "query": "为这款智能手表生成一张电商主图，突出科技感",

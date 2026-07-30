@@ -19,6 +19,9 @@ Flyelep AI Agent 技能集合，可通过仓库 URL 被 OpenClaw、Claude Code �
 | [product-color-change](skills/product-color-change/SKILL.md) | 智能识别商品并进行换色处理 |
 | [image-clarity-enhance](skills/image-clarity-enhance/SKILL.md) | AI 超清增强图片清晰度，支持批量处理 |
 | [async-free-creation](skills/async-free-creation/SKILL.md) | 异步自由创作，调用 Image-2 模型生成多张创意图片 |
+| [ai-writing-assist](skills/ai-writing-assist/SKILL.md) | AI 帮写，辅助生成创意文案和优化提示词 |
+| [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
+| [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，基于爆款风格生成产品复刻视频 |
 
 ## 安装方式
 
@@ -47,6 +50,68 @@ https://github.com/FlyelepAI/agent-skills
 ```
 
 将 `generate-poster` 替换为对应技能目录名即可安装其他技能。
+
+### TRAE
+
+TRAE 支持多种技能安装方式：
+
+**方式一：命令行安装（推荐）**
+
+```bash
+# 交互式搜索并安装技能
+npx find-skills
+
+# 或使用 skills add 命令
+npx skills add FlyelepAI/agent-skills --skill generate-poster -g -y
+```
+
+**方式二：手动部署**
+
+将技能目录复制到 TRAE 技能目录：
+
+- **全局技能目录**（所有项目可用）：
+  - macOS/Linux: `~/.trae/skills/` 或 `~/.trae-cn/skills/`
+  - Windows: `%USERPROFILE%\.trae\skills\` 或 `%USERPROFILE%\.trae-cn\skills\`
+
+- **项目技能目录**（仅当前项目可用）：
+  - 项目根目录下 `.trae/skills/<skill-name>/`
+
+```bash
+# 示例：克隆仓库并复制技能
+git clone https://github.com/example/agent-skills.git
+cp -r agent-skills/skills/generate-poster ~/.trae/skills/
+```
+
+**方式三：自然语言创建**
+
+在 TRAE 编辑器中输入 `/skill` 命令可快速创建新技能。
+
+### WorkBuddy
+
+WorkBuddy 支持多种技能安装方式：
+
+**方式一：命令行安装**
+
+```bash
+# 使用 clawhub 安装
+npx clawhub@latest install FlyelepAI/agent-skills
+```
+
+**方式二：手动部署**
+
+将技能目录复制到 WorkBuddy 技能目录：
+
+- **Windows**: `C:\Users\<用户名>\.workbuddy\skills\<skill-name>\`
+- **macOS/Linux**: `~/.workbuddy/skills/<skill-name>/`
+
+```bash
+# 示例：克隆仓库并复制技能
+git clone https://github.com/example/agent-skills.git
+# Windows
+copy agent-skills\skills\generate-poster C:\Users\<用户名>\.workbuddy\skills\
+# macOS/Linux
+cp -r agent-skills/skills/generate-poster ~/.workbuddy/skills/
+```
 
 ## 环境要求
 
@@ -270,6 +335,60 @@ https://github.com/FlyelepAI/agent-skills
 - `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
 
 详细参数和轮询规则请查看 [skills/async-free-creation/SKILL.md](skills/async-free-creation/SKILL.md)。
+
+### ai-writing-assist
+
+AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取创意灵感。
+
+主要能力：
+
+- AI 辅助生成创意文案
+- 优化产品描述和提示词
+- 支持图片和视频两种场景
+- 返回多个创意选项供选择
+
+接口入口：
+
+- `POST /prod-api/poster-design/api/v1/aiTool/assistedGeneration`
+
+详细参数和文案结构说明请查看 [skills/ai-writing-assist/SKILL.md](skills/ai-writing-assist/SKILL.md)。
+
+### gen-hot-image
+
+爆款图片复刻，基于爆款参考图的风格生成产品复刻图。
+
+主要能力：
+
+- 复刻爆款图片风格
+- 将产品素材融合到爆款视觉中
+- 支持多种比例和语言
+- 异步接口，需轮询获取结果
+
+接口入口：
+
+- `POST /prod-api/poster-design/api/v1/aiTool/generateHotImage`
+- `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
+
+详细参数、模型类型和轮询规则请查看 [skills/gen-hot-image/SKILL.md](skills/gen-hot-image/SKILL.md)。
+
+### gen-hot-video
+
+爆款视频复刻，基于爆款参考视频的风格生成产品复刻视频。
+
+主要能力：
+
+- 复刻爆款视频风格
+- 将产品视频融合到爆款视觉中
+- 支持多种分辨率、比例和时长
+- 支持 pro/fast 两种模型
+- 异步接口，需轮询获取结果
+
+接口入口：
+
+- `POST /prod-api/poster-design/api/v1/aiTool/generateHotVideo`
+- `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
+
+详细参数、模型类型和轮询规则请查看 [skills/gen-hot-video/SKILL.md](skills/gen-hot-video/SKILL.md)。
 
 ## 使用建议
 

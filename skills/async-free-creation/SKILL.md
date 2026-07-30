@@ -169,12 +169,12 @@ secretKey: 用户提供的API密钥
 - 竖版优先推断为 `9:16`
 
 ## 调用示例
-
+- 注意：调用 API 时必须设置 Content-Type 为 `application/json; charset=utf-8`，否则中文会乱码。
 **创建异步自由创作任务：**
 
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" \
-  -H "Content-Type: application/json" \
+  -H "Content-Type: application/json; charset=utf-8" \
   -H "secretKey: 你的密钥" \
   --max-time 300 \
   -d '{
