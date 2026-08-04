@@ -55,15 +55,9 @@ https://github.com/FlyelepAI/agent-skills
 
 TRAE 支持多种技能安装方式：
 
-**方式一：命令行安装（推荐）**
+**方式一：自然语言创建**
 
-```bash
-# 交互式搜索并安装技能
-npx find-skills
-
-# 或使用 skills add 命令
-npx skills add FlyelepAI/agent-skills --skill generate-poster -g -y
-```
+在 TRAE 编辑器中输入 `/skill` 命令可快速创建新技能。
 
 **方式二：手动部署**
 
@@ -76,15 +70,21 @@ npx skills add FlyelepAI/agent-skills --skill generate-poster -g -y
 - **项目技能目录**（仅当前项目可用）：
   - 项目根目录下 `.trae/skills/<skill-name>/`
 
+**方式三：命令行安装（推荐）**
+
+```bash
+# 交互式搜索并安装技能
+npx find-skills
+
+# 或使用 skills add 命令
+npx skills add FlyelepAI/agent-skills --skill generate-poster -g -y
+```
+
 ```bash
 # 示例：克隆仓库并复制技能
 git clone https://github.com/example/agent-skills.git
 cp -r agent-skills/skills/generate-poster ~/.trae/skills/
 ```
-
-**方式三：自然语言创建**
-
-在 TRAE 编辑器中输入 `/skill` 命令可快速创建新技能。
 
 ### WorkBuddy
 
