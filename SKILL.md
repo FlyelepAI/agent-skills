@@ -22,6 +22,7 @@ description: >-
 | [ai-writing-assist](skills/ai-writing-assist/SKILL.md) | AI 帮写，辅助生成创意文案和优化提示词 |
 | [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
 | [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，基于爆款风格生成产品复刻视频 |
+| [generate-video](skills/generate-video/SKILL.md) | 文本生成视频，通过 AI 根据提示词生成产品视频或创意视频 |
 
 
 ## 环境要求
@@ -300,6 +301,38 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 - `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
 
 详细参数、模型类型和轮询规则请查看 [skills/gen-hot-video/SKILL.md](skills/gen-hot-video/SKILL.md)。
+
+### generate-video
+
+通过 Flyelep 异步生成视频 API，根据文本提示词生成产品视频或创意视频，适用于产品展示视频、品牌宣传视频、种草视频等场景。
+
+主要能力：
+
+- 文本生成视频，支持产品展示和创意视频两种类型
+- 支持多种分辨率（480p/720p/1080p/2K/4K）、比例（1:1/16:9/9:16 等）和时长（4-15 秒）
+- 支持 `pro`/`fast` 两种视频模型，兼顾质量与速度
+- 支持添加参考图片、视频、音频作为创作素材
+- 支持首帧/尾帧图片控制视频首尾画面
+- 支持生成或关闭配音音频
+- 异步接口，需轮询获取结果
+
+接口入口：
+
+- `POST /prod-api/poster-design/api/v1/aiTool/generateVideo`
+- `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
+
+模型类型：
+
+- `pro`：`Flyelep Video 2.0 Pro`（高质量）
+- `fast`：`Flyelep Video 2.0`（快速生成）
+
+视频业务标签：
+
+- `主图视频`：产品主图展示
+- `种草视频`：产品种草推荐
+- `品牌宣传`：品牌形象宣传
+
+详细参数说明、素材规则和轮询策略请查看 [skills/generate-video/SKILL.md](skills/generate-video/SKILL.md)。
 
 ## 使用建议
 
