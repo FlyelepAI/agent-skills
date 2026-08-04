@@ -55,7 +55,7 @@ https://github.com/FlyelepAI/agent-skills
 
 TRAE 支持多种技能安装方式：
 
-**方式一：自然语言创建**
+**方式一：自然语言创建（推荐）**
 
 在 TRAE 编辑器中输入 `/skill` 命令可快速创建新技能。
 
@@ -70,7 +70,7 @@ TRAE 支持多种技能安装方式：
 - **项目技能目录**（仅当前项目可用）：
   - 项目根目录下 `.trae/skills/<skill-name>/`
 
-**方式三：命令行安装（推荐）**
+**方式三：命令行安装**
 
 ```bash
 # 交互式搜索并安装技能
@@ -90,14 +90,15 @@ cp -r agent-skills/skills/generate-poster ~/.trae/skills/
 
 WorkBuddy 支持多种技能安装方式：
 
-**方式一：命令行安装**
+**方式一：手动安装**
 
-```bash
-# 使用 clawhub 安装
-npx clawhub@latest install FlyelepAI/agent-skills
-```
+在 WorkBuddy 对话框左下角"+"号，选择"安装技能"，输入技能 Markdown 文件即可安装。
 
-**方式二：手动部署**
+**方式二：自然语言创建（推荐）**
+
+在 WorkBuddy 编辑器中输入 "帮我创建一个技能：<技能Markdown文件路径>" 可快速创建新技能。
+
+**方式三：手动部署**
 
 将技能目录复制到 WorkBuddy 技能目录：
 
