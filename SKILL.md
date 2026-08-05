@@ -318,7 +318,7 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 
 接口入口：
 
-- `POST /prod-api/poster-design/api/v1/aiTool/generateVideo`
+- `POST /prod-api/poster-design/api/v1/poster/generateVideo`
 - `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
 
 模型类型：
