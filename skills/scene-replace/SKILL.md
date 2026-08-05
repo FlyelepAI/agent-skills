@@ -61,26 +61,14 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | sourceUrl | - | 原图链接 |
-| modelType | - | 模型类型：`0=gemini-2.5`，`1=gemini-3-pro` |
-
-### 条件必传参数
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| replaceImageUrl | - | 场景参考图链接，多张时用英文逗号分隔|
-| textPrompt | - | 用户提示词，描述目标场景|
+| replaceImageUrl | - | 场景参考图链接，暂时只支持单图 |
+| textPrompt | - | 用户提示词，描述目标场景 |
+| modelType | 0 | 模型类型：无论任何情况，都默认填 `0` |
 
 ## 参数映射规则
 ### sourceUrl
 - 传入待替换场景的原图公网 URL
 - 必须是图片直链，不要传网页地址
-
-### modelType
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
-
-推荐默认规则：
-
-- 用户未指定模型时，默认传 `0`
 
 ### replaceImageUrl
 - 用于提供目标场景参考图
@@ -108,12 +96,12 @@ secretKey: 用户提供的API密钥
   "sourceUrl": "https://example.com/product.jpg",
   "replaceImageUrl": "https://example.com/scene1.jpg,https://example.com/scene2.jpg",
   "textPrompt": "室内现代风格展厅，暖色灯光，突出高级陈列感",
-  "modelType": 1
+  "modelType": 0
 }
 ```
 > 方式 B（无 Write 工具）：
 > ```powershell
-> $json = '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg,https://example.com/scene2.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":1}'
+> $json = '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg,https://example.com/scene2.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":0}'
 > [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
 > ```
 
@@ -133,7 +121,7 @@ rm payload_temp.json
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
-| `modelType` 非 0/1 | 模型类型只支持 `0` 或 `1` |
+| `modelType` 非 0 | 模型类型只支持 `0` |
 | `replaceImageUrl` 与 `textPrompt` 都没传或少传 | 两者都需要提供 |
 | 场景效果不理想 | 文字描述过于模糊，可补充风格、光线、空间类型、氛围等信息 |
 | 请求超时 | 原图较大、参考图较多或生成复杂时，可适当增大超时时间 |

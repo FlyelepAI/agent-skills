@@ -59,7 +59,7 @@ description: >-
 | platformType | amazon | 电商平台（见下方映射表） |
 | languageType | 英文 | 生成图片上的文案语种 |
 | detailPictureNumber | 10 | 产品单图固定为1；详情图可选5、10、15 |
-| modelEdition | 3 | 2=Flyelep 2.0，3=Flyelep 3.0 |
+| modelEdition | 3 | 2=Flyelep 2.0，3=Flyelep 3.0，9=Flyelep Image 2 |
 | needText | true | 图片上是否包含文案 |
 | secretKey | - | API 密钥 |
 ### 可选参数

@@ -228,7 +228,7 @@ secretKey: 用户提供的API密钥
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -285,7 +285,7 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -317,7 +317,7 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -351,7 +351,7 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：

@@ -61,28 +61,15 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | sourceUrl | - | 原图链接，包含原始商品的图片 |
-| modelType | - | 模型类型：`0=gemini-2.5`，`1=gemini-3-pro` |
-
-### 可选参数
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| replaceImageUrl | - | 目标商品图链接，多张时用英文逗号分隔 |
+| replaceImageUrl | - | 目标商品图链接，暂时只支持单图 |
 | textPrompt | - | 用户提示词 |
+| modelType | - | 模型类型：无论任何情况，都默认填 `0` |
 
 ## 参数映射规则
 ### sourceUrl
 - 传入待替换商品的原图公网 URL
 - 必须是图片直链，不要传网页地址
 - 原图中应清楚包含待替换商品和原背景环境
-
-### modelType
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
-
-推荐默认规则：
-
-- 用户未指定模型时，默认传 `0`
-- 若用户追求更好的效果，可先传 `1`
 
 ### replaceImageUrl
 - 用于提供目标商品图
@@ -117,13 +104,13 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/scene_with_old_product.jpg",
   "replaceImageUrl": "https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg",
-  "modelType": 1,
+  "modelType": 0,
   "textPrompt": "将商品替换为我上传的图片，颜色为红色"
 }
 ```
 > 方式 B（无 Write 工具）：
 > ```powershell
-> $json = '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":1,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
+> $json = '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":0,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
 > [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
 > ```
 
@@ -144,7 +131,7 @@ rm payload_temp.json
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `replaceImageUrl` 无法访问 | 目标商品图 URL 无效、不可公开访问，或链接格式不正确 |
-| `modelType` 非 0/1 | 模型类型只支持 `0` 或 `1` |
+| `modelType` 非 0 | 模型类型只支持 `0` |
 | 替换结果不像目标商品 | 目标商品图不够清晰或角度不足，可增加更多参考图并补充 `textPrompt` |
 | 商品替换后背景不协调 | 提示词未强调保留原背景和光影，可在 `textPrompt` 中补充说明 |
 | 请求超时 | 原图较大、参考商品图较多或生成复杂时，可适当增大超时时间 |
