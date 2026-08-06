@@ -91,14 +91,12 @@ description: >-
 ### 必传参数
 
 > **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
-> **注意**：白底主图必须提供参考图（`fileUrlList`），否则会生图失败。
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | query | - | 生图需求描述，最多1000个字符 |
 | generateType | 101 | 固定为 101（白底主图） |
 | posterType | 5 | 5=跨境电商 |
-| fileUrlList | - | **必填**，参考图片 URL 数组，最多6张，建议单张在10MB以内 |
 | detailPictureNumber | 1 | 需要生成的图片数量（1张） |
 | modelEdition | 3 | 2=Flyelep 2.0，3=Flyelep 3.0，9=Flyelep Image 2 |
 | secretKey | - | API 密钥（同时在 Header 和 Body 中传递） |
@@ -107,6 +105,7 @@ description: >-
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
+| fileUrlList | - | 参考图片 URL 数组，最多6张，建议单张在10MB以内 |
 | aspectRatio | 随机 | 图片比例：1:1、3:2、2:3、3:4、4:3、4:5、5:4、9:16、16:9、21:9 |
 
 ## 参数映射规则
@@ -164,7 +163,7 @@ description: >-
 
 ### 示例：生成白底主图（带参考图）
 
-> **重要**：白底主图必须提供参考图（`fileUrlList`），且 `secretKey` 需要同时在 **Header** 和 **Body** 中传递。
+> **重要**：`secretKey` 需要同时在 **Header** 和 **Body** 中传递。
 
 #### 步骤 1：创建任务
 
