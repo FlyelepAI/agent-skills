@@ -3,3 +3,4 @@
 *.json
 *.py
 skills/file-upload/
+.DS_Store
