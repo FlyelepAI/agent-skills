@@ -1,11 +1,11 @@
 ---
 name: generate-poster
 description: >-
-  通过 Flyelep API 生成电商产品主图和详情图海报。
-  当用户要求生成产品图、电商海报、Amazon 商品图、详情页图片时使用此技能。
+  通过 Flyelep API 生成电商产品主图、详情图海报和白底主图。
+  当用户要求生成产品图、电商海报、Amazon 商品图、详情页图片、白底图、白底主图、纯白背景产品图时使用此技能。
 ---
 # Flyelep 电商海报生图
-通过 Flyelep AI API 异步生成电商产品主图和详情图海报。
+通过 Flyelep AI API 异步生成电商产品主图、详情图海报和白底主图。
 
 **重要：这是一个 HTTP API 调用技能。必须通过 HTTP POST 请求调用 API 接口，禁止通过浏览器访问 Flyelep 网站。**
 
@@ -15,7 +15,9 @@ description: >-
 
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync`
 - **Content-Type**: `application/json`
-- **认证方式**: 在请求 JSON body 中传入 `secretKey`
+- **认证方式**:
+  - `generateType=100/200`（产品单图/详情图）：`secretKey` 仅在请求 Body 中传递
+  - `generateType=101`（白底主图）：`secretKey` 同时在 **Header** 和 **Body** 中传递
 - **超时时间**: 建议 120 秒（创建任务为瞬时操作）
 
 ### 查询结果
@@ -27,11 +29,16 @@ description: >-
 
 ## 认证方式
 
-在请求 JSON body 的 `secretKey` 字段中传入 API 密钥。用户需在 Flyelep 平台（https://www.flyelep.cn）获取密钥。
+- `generateType=100/200`（产品单图/详情图）：在请求 JSON body 的 `secretKey` 字段中传入 API 密钥
+- `generateType=101`（白底主图）：`secretKey` 同时在 **Header** 和 **Body** 中传递
 
-> **安全说明**：将 `secretKey` 放在 JSON body 中是 Flyelep API 的设计要求。API 密钥仅在请求时传递给 Flyelep 服务器，不存储在技能代码中。请勿将真实的密钥直接写在示例代码中，运行时由用户动态提供。
+查询结果时，`secretKey` 统一在 Header 中传递。用户需在 Flyelep 平台（https://www.flyelep.cn）获取密钥。
+
+> **安全说明**：API 密钥仅在请求时传递给 Flyelep 服务器，不存储在技能代码中。请勿将真实的密钥直接写在示例代码中，运行时由用户动态提供。
 
 ## 请求 Body
+
+### generateType=100/200（产品单图/详情图）
 
 ```json
 {
@@ -43,6 +50,23 @@ description: >-
   "detailPictureNumber": 10,
   "modelEdition": 3,
   "needText": true,
+  "secretKey": "用户提供的API密钥",
+  "fileUrlList": ["https://example.com/product.png"],
+  "aspectRatio": "1:1"
+}
+```
+
+### generateType=101（白底主图）
+
+> **注意**：白底主图不需要 `platformType`、`languageType`、`needText` 参数，且 `secretKey` 需要同时在 Header 和 Body 中传递。
+
+```json
+{
+  "query": "生成白底主图的需求描述，最多1000个字符",
+  "generateType": 101,
+  "posterType": 5,
+  "detailPictureNumber": 1,
+  "modelEdition": 3,
   "secretKey": "用户提供的API密钥",
   "fileUrlList": ["https://example.com/product.png"],
   "aspectRatio": "1:1"
@@ -95,14 +119,14 @@ description: >-
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | query | - | 生图需求描述，最多1000个字符 |
-| generateType | 200 | 100=产品单图，200=产品详情图 |
+| generateType | 200 | 100=产品单图，101=白底主图，200=产品详情图 |
 | posterType | 5 | 5=跨境电商，6=中文电商 |
-| platformType | amazon | 电商平台（见下方映射表） |
-| languageType | 英文 | 生成图片上的文案语种 |
-| detailPictureNumber | 10 | 产品单图固定为1；详情图可选5、10、15 |
+| platformType | amazon | 电商平台（见下方映射表）。**generateType=101 时不需要** |
+| languageType | 英文 | 生成图片上的文案语种。**generateType=101 时不需要** |
+| detailPictureNumber | 10 | 产品单图限1张；详情图可选5、10、15张 |
 | modelEdition | 3 | 2=Flyelep 2.0，3=Flyelep 3.0，9=Flyelep Image 2 |
-| needText | true | 图片上是否包含文案 |
-| secretKey | - | API 密钥 |
+| needText | true | 图片上是否包含文案。**generateType=101 时不需要** |
+| secretKey | - | API 密钥（generateType=101 时同时在 Header 和 Body 中传递） |
 
 ### 可选参数
 
@@ -134,6 +158,7 @@ description: >-
 
 ### detailPictureNumber（图片数量）
 - 产品单图（`generateType=100`）：固定为 `1`
+- 白底主图（`generateType=101`）：白底单图固定为 `1`，白底详情图可选 `5`、`10` 或 `15`
 - 产品详情图（`generateType=200`）：`5`、`10` 或 `15`
 
 ## 异步任务流程
@@ -365,6 +390,73 @@ curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poste
 ```bash
 rm payload_temp.json
 ```
+
+### 示例 4：生成白底主图（generateType=101）
+
+> **注意**：白底主图不需要 `platformType`、`languageType`、`needText` 参数，且 `secretKey` 需要同时在 **Header** 和 **Body** 中传递。
+
+#### 步骤 1：创建任务
+
+步骤 1：创建 `payload_temp.json`，内容如下（Body 中包含 secretKey，无 platformType/languageType/needText）：
+```json
+{
+  "query": "生成一张蓝牙耳机白底产品主图，产品居中，背景纯白",
+  "generateType": 101,
+  "posterType": 5,
+  "detailPictureNumber": 1,
+  "modelEdition": 3,
+  "secretKey": "你的密钥",
+  "aspectRatio": "1:1"
+}
+```
+> 方式 B（无 Write 工具）：
+> ```powershell
+> $json = '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
+> ```
+
+步骤 2：使用 Shell 工具执行（secretKey 同时在 Header 和 Body 中）：
+```bash
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+```
+
+> **macOS/Linux 内联写法**（secretKey 同时在 Header 和 Body 中）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+> ```
+
+步骤 3：清理临时文件：
+```bash
+rm payload_temp.json
+```
+
+#### 步骤 2：查询任务结果（轮询）
+
+步骤 1：创建 `payload_temp.json`，内容如下：
+```json
+{
+  "agentGenerateTaskId": "上一步返回的任务ID"
+}
+```
+
+步骤 2：使用 Shell 工具执行（secretKey 在 Header 中）：
+```bash
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
+```
+
+> **macOS/Linux 内联写法**：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"上一步返回的任务ID"}'
+> ```
+
+步骤 3：清理临时文件：
+```bash
+rm payload_temp.json
+```
+
+#### 步骤 3：处理结果
+
+轮询查询直到 `taskStatus=2`（生成成功），提取 `executeResult` 中的图片 URL 展示给用户。
 
 ## 常见错误及解决方案
 
