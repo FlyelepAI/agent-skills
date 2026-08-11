@@ -23,6 +23,7 @@ description: >-
 | [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
 | [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，基于爆款风格生成产品复刻视频 |
 | [generate-video](skills/generate-video/SKILL.md) | 文本生成视频，通过 AI 根据提示词生成产品视频或创意视频 |
+| [image-upload](skills/image-upload/SKILL.md) | 上传本地图片到云存储，返回可公网访问的图片直链 |
 
 
 ## 环境要求
@@ -334,10 +335,33 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 
 详细参数说明、素材规则和轮询策略请查看 [skills/generate-video/SKILL.md](skills/generate-video/SKILL.md)。
 
+### image-upload
+
+把本地图片文件上传到云存储，返回永久可访问的图片直链，用于为其它技能准备图片入参。
+
+主要能力：
+
+- 上传本地图片，换回公网可访问的图片 URL
+- 返回的直链不带签名、不会过期
+- 上传前自动执行内容审核
+
+接口入口：
+
+- `POST /prod-api/poster-design/api/v1/file/upload`
+
+请求方式为 `multipart/form-data`，文件字段名为 `file`，单次只能上传一个文件。
+
+支持格式：
+
+- 仅支持 `bmp`、`gif`、`jpg`、`jpeg`、`png`
+
+详细参数说明和错误处理请查看 [skills/image-upload/SKILL.md](skills/image-upload/SKILL.md)。
+
 ## 使用建议
 
 - 所有技能均以各自目录中的 `SKILL.md` 为准
 - 对于需要高稳定性的调用，优先使用可公网访问、格式规范的图片直链
+- 用户提供的是本地图片文件而非直链时，先用 `image-upload` 上传换取直链，再调用其它图片处理技能
 - 对于场景替换、商品替换、商品换色这类生成型接口，建议尽量同时提供清晰原图和明确的文本描述
 
 ## License
