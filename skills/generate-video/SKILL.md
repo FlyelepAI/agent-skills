@@ -12,7 +12,7 @@ description: >-
 **注意：此接口为异步接口，只返回任务ID，需要通过 queryTaskResult 接口获取最终结果。**
 
 ## API 接口信息
-- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo`
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo`
 - **Content-Type**: `application/json`
 - **超时时间**: 建议 60-120 秒（获取任务结果需额外轮询，视频生成可能需要更长时间）
 
@@ -79,6 +79,9 @@ secretKey: 用户提供的API密钥
 ## 参数说明
 
 ### 必传参数
+
+> **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
+
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | query | string(0,1000) | - | 用户生成海报的具体需求描述（最多1000个字符长度） |
@@ -141,12 +144,19 @@ secretKey: 用户提供的API密钥
 - `种草视频`：产品种草推荐
 - `品牌宣传`：品牌形象宣传
 
+### 生成方式
+- 全能参考模式：使用参考图片、视频、音频生成视频，用户可以提供参考图片、视频、音频，但也可以不提供，此时视频会根据这些参考内容生成。
+- 首尾帧模式：使用首帧图片、尾帧图片生成视频，用户必须提供首帧图片、尾帧图片，视频会根据这些图片生成。
+- 在提交请求前，请询问用户使用哪种模式。
+
 ### referenceImageStr（参考图片）
+- 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多6张图片，单个不超过10MB
 - **注意**：图片、视频和音频文件总数不能超出6个
 
 ### referenceVideoStr（参考视频）
+- 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多3条视频，单个不超过50MB
 - 总时长不能超过15秒
@@ -154,16 +164,19 @@ secretKey: 用户提供的API密钥
 - **注意**：图片、视频和音频文件总数不能超出6个
 
 ### referenceAudioStr（参考音频）
+- 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多3条音频，单个不超过50MB
 - 总时长不能超过15秒
 - **注意**：图片、视频和音频文件总数不能超出6个
 
 ### firstFrame（首帧图片）
+- 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：首帧图片不能同图片、视频、音频一起使用
 
 ### lastFrame（尾帧图片）
+- 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：尾帧图片不能同图片、视频、音频一起使用
 
@@ -185,12 +198,18 @@ secretKey: 用户提供的API密钥
 - **轮询策略**：建议每5-10秒查询一次，视频生成耗时较长，超时时间建议设置为20分钟
 
 ## 调用示例
-- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
-- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
+- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
+- **Windows/PowerShell 环境**：
+  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
+  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **macOS/Linux 环境**：
+  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
+  - 推荐内联写法：`curl -X POST URL -H "..." -H "..." --data-binary 'JSON单行内容'`，一步完成。
+  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`。
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
 **示例 1：提交视频生成任务（基础）**
 
@@ -216,8 +235,13 @@ secretKey: 用户提供的API密钥
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"为这款智能手表制作一个展示视频，突出运动监测功能","platformType":"Amazon","languageType":"英语","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":10,"resolution":"720p","videoTag":"主图视频"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -242,6 +266,11 @@ rm payload_temp.json
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072923591164715009"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -273,8 +302,13 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"根据提供的产品图片生成展示视频","platformType":"淘宝","languageType":"中文简体","videoModelType":"pro","aspectRatio":"1:1","needVoice":true,"duration":8,"resolution":"1080p","videoTag":"种草视频","referenceImageStr":"https://example.com/product1.png,https://example.com/product2.png"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -305,8 +339,13 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个简单的产品展示视频","platformType":"Amazon","languageType":"英语","videoModelType":"fast","aspectRatio":"9:16","needVoice":false,"duration":6,"resolution":"480p","videoTag":"主图视频"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -339,8 +378,13 @@ rm payload_temp.json
 
 步骤 2：使用 Shell 工具执行：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个产品宣传视频","platformType":"京东","languageType":"中文简体","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":12,"resolution":"4K","videoTag":"品牌宣传","firstFrame":"https://example.com/first_frame.png","lastFrame":"https://example.com/last_frame.png"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash

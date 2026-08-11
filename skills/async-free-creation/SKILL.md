@@ -111,6 +111,8 @@ secretKey: 用户提供的API密钥
 
 ### 必传参数
 
+> **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
+
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | query | - | 用户生成图片的具体需求描述，最多 1000 个字符 |
@@ -160,6 +162,8 @@ secretKey: 用户提供的API密钥
 - `16:9`
 - `21:9`
 
+API 文档标注此参数为必需，但默认为空时接口随机选择比例。
+
 默认规则：
 
 - 用户明确指定比例时，原样传入
@@ -169,12 +173,18 @@ secretKey: 用户提供的API密钥
 - 竖版优先推断为 `9:16`
 
 ## 调用示例
-- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
-- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
+- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
+- **Windows/PowerShell 环境**：
+  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
+  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **macOS/Linux 环境**：
+  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
+  - 推荐内联写法：`curl -X POST URL -H "..." -H "..." --data-binary 'JSON单行内容'`，一步完成。
+  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`。
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
 **示例 1：创建异步自由创作任务**
 
@@ -200,6 +210,11 @@ secretKey: 用户提供的API密钥
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
 
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}'
+> ```
+
 步骤 3：清理临时文件：
 ```bash
 rm payload_temp.json
@@ -223,6 +238,11 @@ rm payload_temp.json
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"agentGenerateTaskId":"2054467932287070209"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash

@@ -55,29 +55,20 @@ secretKey: 用户提供的API密钥
 
 ## 参数说明
 ### 必传参数
+
+> **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
+
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | sourceUrl | - | 原图链接 |
-| modelType | - | 模型类型：`0=gemini-2.5`，`1=gemini-3-pro` |
-
-### 推荐传入参数
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| textPrompt | - | 换色提示词，如“将商品颜色改为深蓝色” |
+| textPrompt | - | 换色提示词，如"将商品颜色改为深蓝色" |
+| modelType | - | 模型类型：无论任何情况，都默认填 `0` |
 
 ## 参数映射规则
 ### sourceUrl
 - 传入待换色商品的原图公网 URL
 - 必须是图片直链，不要传网页地址
 - 原图应尽量清晰展示商品主体和原始颜色
-
-### modelType
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
-
-推荐默认规则：
-
-- 用户未指定模型时，默认传 `0`
 
 ### textPrompt
 - 文档将其标为必需
@@ -99,12 +90,18 @@ secretKey: 用户提供的API密钥
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
 ## 调用示例
-- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
-- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
+- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
+- **Windows/PowerShell 环境**：
+  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
+  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **macOS/Linux 环境**：
+  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
+  - 推荐内联写法：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`，一步完成
+  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
 **示例 1：基础商品换色**
 
@@ -113,12 +110,12 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/product_red.jpg",
   "textPrompt": "将商品颜色改为深蓝色",
-  "modelType": 1
+  "modelType": 0
 }
 ```
 > 方式 B（无 Write 工具）：
 > ```powershell
-> $json = '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":1}'
+> $json = '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":0}'
 > [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
 > ```
 
@@ -126,6 +123,11 @@ secretKey: 用户提供的API密钥
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":0}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -139,12 +141,12 @@ rm payload_temp.json
 {
   "sourceUrl": "https://example.com/product_watch.jpg",
   "textPrompt": "将表带改为深棕色皮革观感，保留金属表盘和整体光影不变",
-  "modelType": 1
+  "modelType": 0
 }
 ```
 > 方式 B（无 Write 工具）：
 > ```powershell
-> $json = '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":1}'
+> $json = '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":0}'
 > [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
 > ```
 
@@ -152,6 +154,11 @@ rm payload_temp.json
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":0}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -164,7 +171,7 @@ rm payload_temp.json
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
-| `modelType` 非 0/1 | 模型类型只支持 `0` 或 `1` |
+| `modelType` 非 0 | 模型类型只支持 `0` |
 | 换色结果偏差较大 | `textPrompt` 过于模糊，可补充目标颜色、材质观感和保留项 |
 | 局部也被错误换色 | 原图主体边界不清晰，可换更干净的源图或在提示词里强调保留范围 |
 | 请求超时 | 图片较大或处理复杂时，可适当增大超时时间 |

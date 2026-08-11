@@ -56,31 +56,21 @@ secretKey: 用户提供的API密钥
 
 ## 参数说明
 ### 必传参数
+
+> **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
+
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | sourceUrl | - | 原图链接，包含原始商品的图片 |
-| modelType | - | 模型类型：`0=gemini-2.5`，`1=gemini-3-pro` |
-
-### 可选参数
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| replaceImageUrl | - | 目标商品图链接，多张时用英文逗号分隔 |
+| replaceImageUrl | - | 目标商品图链接，暂时只支持单图 |
 | textPrompt | - | 用户提示词 |
+| modelType | - | 模型类型：无论任何情况，都默认填 `0` |
 
 ## 参数映射规则
 ### sourceUrl
 - 传入待替换商品的原图公网 URL
 - 必须是图片直链，不要传网页地址
 - 原图中应清楚包含待替换商品和原背景环境
-
-### modelType
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
-
-推荐默认规则：
-
-- 用户未指定模型时，默认传 `0`
-- 若用户追求更好的效果，可先传 `1`
 
 ### replaceImageUrl
 - 用于提供目标商品图
@@ -101,12 +91,18 @@ secretKey: 用户提供的API密钥
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
 ## 调用示例
-- **重要**：在 Windows/PowerShell 环境下调用 API 时，必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。同时必须设置 `Content-Type: application/json; charset=utf-8` 请求头。
-- **注意**：在 Windows 环境下使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-- **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-  - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-  - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件。
+- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
+- **Windows/PowerShell 环境**：
+  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
+  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
+  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
+    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
+    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
+- **macOS/Linux 环境**：
+  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
+  - 推荐内联写法：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`，一步完成
+  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`
+- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
 **示例：结合目标商品图与文本约束替换商品**
 
@@ -115,13 +111,13 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/scene_with_old_product.jpg",
   "replaceImageUrl": "https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg",
-  "modelType": 1,
+  "modelType": 0,
   "textPrompt": "将商品替换为我上传的图片，颜色为红色"
 }
 ```
 > 方式 B（无 Write 工具）：
 > ```powershell
-> $json = '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":1,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
+> $json = '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":0,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
 > [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
 > ```
 
@@ -129,6 +125,11 @@ secretKey: 用户提供的API密钥
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
+
+> **macOS/Linux 内联写法**（无需临时文件）：
+> ```bash
+> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":0,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
+> ```
 
 步骤 3：清理临时文件：
 ```bash
@@ -142,7 +143,7 @@ rm payload_temp.json
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `replaceImageUrl` 无法访问 | 目标商品图 URL 无效、不可公开访问，或链接格式不正确 |
-| `modelType` 非 0/1 | 模型类型只支持 `0` 或 `1` |
+| `modelType` 非 0 | 模型类型只支持 `0` |
 | 替换结果不像目标商品 | 目标商品图不够清晰或角度不足，可增加更多参考图并补充 `textPrompt` |
 | 商品替换后背景不协调 | 提示词未强调保留原背景和光影，可在 `textPrompt` 中补充说明 |
 | 请求超时 | 原图较大、参考商品图较多或生成复杂时，可适当增大超时时间 |
