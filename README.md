@@ -18,7 +18,7 @@ description: >-
 | [product-replace](skills/product-replace/SKILL.md) | 替换图片中的商品主体，保留背景和光影效果 |
 | [product-color-change](skills/product-color-change/SKILL.md) | 智能识别商品并进行换色处理 |
 | [image-clarity-enhance](skills/image-clarity-enhance/SKILL.md) | AI 超清增强图片清晰度，支持批量处理 |
-| [async-free-creation](skills/async-free-creation/SKILL.md) | 异步自由创作，调用 Image-2 模型生成多张创意图片 |
+| [async-free-creation](skills/async-free-creation/SKILL.md) | 异步自由创作，可选模型生成多张创意图片 |
 | [ai-writing-assist](skills/ai-writing-assist/SKILL.md) | AI 帮写，辅助生成创意文案和优化提示词 |
 | [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
 | [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，基于爆款风格生成产品复刻视频 |
@@ -30,8 +30,8 @@ description: >-
 
 - 用户需从 Flyelep 开放平台获取 API 密钥
 - Flyelep 平台地址：https://www.flyelep.cn
-- 除 `poster` 外，本仓库中的 AI 工具技能统一要求在请求头中传入 `secretKey`
-- `poster` 技能按接口要求在请求 body 中传入 `secretKey`
+- 本仓库中的技能统一要求在请求头中传入 `secretKey`
+- 海报生图（`generate-poster`）与视频生成（`generate-video`）也兼容在请求 body 中传 `secretKey`，两处都传时以请求头为准
 
 ## 技能列表
 
@@ -45,10 +45,16 @@ description: >-
 - 支持跨境电商与中文电商
 - 支持多平台、多语言文案
 - 支持参考图输入和比例控制
+- 支持尊享通道（默认）与特惠通道，特惠通道仅支持 `modelEdition` 为 `3` 或 `9`
+- 同时提供异步（提交后轮询）与同步（一次请求出图）两种模式，参数完全一致
 
 接口入口：
 
-- `POST /prod-api/poster-design/api/v1/poster/generate`
+- 异步（推荐）：`POST /prod-api/poster-design/api/v1/poster/generateAsync` + `POST /prod-api/poster-design/api/v1/poster/queryTaskResult`
+- 同步：`POST /prod-api/poster-design/api/v1/poster/generate`
+- 同步（白底主图专属入口，等价于 `/generate` + `generateType=101`）：`POST /prod-api/poster-design/api/v1/poster/whiteBgMainImgGen`
+
+同步模式服务端最长挂 15 分钟，返回的 `data` 是以英文分号 `;` 拼接的字符串，且不返回任务 ID，连接断开后结果无法找回；除用户明确要求一次请求出图外，优先用异步模式。
 
 详细参数和映射规则请查看 [skills/generate-poster/SKILL.md](skills/generate-poster/SKILL.md)。
 
@@ -102,23 +108,24 @@ description: >-
 
 ### image-enlarge
 
-对图片进行无损放大，支持单张或批量增强。
+对图片按倍数进行无损放大，支持单张或批量处理。
 
 主要能力：
 
-- 提高清晰度
-- 放大图片尺寸
-- 批量增强商品图
+- 按倍数放大图片尺寸
+- 提升放大后的成图分辨率
+- 批量放大商品图
+
+> 只想“变清晰”而不放大尺寸时，应改用 `image-clarity-enhance`。
 
 接口入口：
 
 - `POST /prod-api/poster-design/api/v1/poster/aiTool/enlarge`
 
-增强强度为：
+放大倍数 `scalingRatio`：
 
-- `1`：轻度增强
-- `2`：标准增强
-- `3`：强力增强
+- 取值范围 `1`-`8`，未指定时用 `2`
+- 计费档位为 `2`、`4`、`8` 三档
 
 详细调用方式请查看 [skills/image-enlarge/SKILL.md](skills/image-enlarge/SKILL.md)。
 
@@ -154,8 +161,9 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
+- `0`：`gemini-2.5`（基础计费档）
+- `1`：`gemini-3-pro`（3.0 计费档）
+- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
 
 详细参数说明请查看 [skills/scene-replace/SKILL.md](skills/scene-replace/SKILL.md)。
 
@@ -175,8 +183,9 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
+- `0`：`gemini-2.5`（基础计费档）
+- `1`：`gemini-3-pro`（3.0 计费档）
+- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
 
 详细参数说明请查看 [skills/product-replace/SKILL.md](skills/product-replace/SKILL.md)。
 
@@ -196,8 +205,9 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`
-- `1`：`gemini-3-pro`
+- `0`：`gemini-2.5`（基础计费档）
+- `1`：`gemini-3-pro`（3.0 计费档）
+- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
 
 详细提示词建议请查看 [skills/product-color-change/SKILL.md](skills/product-color-change/SKILL.md)。
 
@@ -215,11 +225,11 @@ description: >-
 
 - `POST /prod-api/poster-design/api/v1/poster/aiTool/imageClarityEnhance`
 
-增强强度：
+增强强度（必须显式传入，缺失时接口直接返回空结果）：
 
-- `light`
-- `standard`
-- `strong`
+- `light`（基础单价）
+- `standard`（2 倍单价）
+- `strong`（3 倍单价）
 
 图片规格限制：
 
@@ -233,14 +243,23 @@ description: >-
 
 ### async-free-creation
 
-异步自由创作，适用于根据提示词和可选参考图调用 Image-2 模型生成产品图或创意图片。
+异步自由创作，适用于根据提示词和可选参考图生成产品图或创意图片。
 
 主要能力：
 
 - 通过异步任务生成 1-4 张图片
 - 支持参考图数组，最多 6 张
 - 支持 `1:1`、`16:9`、`9:16` 等比例
+- 支持模型选择：Flyelep Image 2（默认）、Flyelep Nano 2、Flyelep Dream 5 pro
 - 使用新版任务查询接口轮询获取结果
+
+模型类型：
+
+| modelEdition | 模型 |
+|--------------|------|
+| `9` | Flyelep Image 2（默认） |
+| `3` | Flyelep Nano 2 |
+| `2` | Flyelep Dream 5 pro |
 
 接口入口：
 
@@ -292,8 +311,8 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 
 - 复刻爆款视频风格
 - 将产品视频融合到爆款视觉中
-- 支持多种分辨率、比例和时长
-- 支持 pro/fast 两种模型
+- 支持多种分辨率、比例和时长（4-15 秒）
+- 支持 `pro`/`fast`/`ultra` 三种模型档位
 - 异步接口，需轮询获取结果
 
 接口入口：
@@ -310,8 +329,8 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 主要能力：
 
 - 文本生成视频，支持产品展示和创意视频两种类型
-- 支持多种分辨率（480p/720p/1080p/2K/4K）、比例（1:1/16:9/9:16 等）和时长（4-15 秒）
-- 支持 `pro`/`fast` 两种视频模型，兼顾质量与速度
+- 支持多种分辨率（480p/720p/1080p/2K/4K）、比例（1:1/16:9/9:16 等）和时长（4-60 秒，超长视频由工作流拆分多段拼接）
+- 支持 `pro`/`fast`/`ultra` 三种视频模型，兼顾质量与速度
 - 支持添加参考图片、视频、音频作为创作素材
 - 支持首帧/尾帧图片控制视频首尾画面
 - 支持生成或关闭配音音频
@@ -324,8 +343,9 @@ AI 帮写，辅助生成创意文案，可用于优化用户提示词或获取�
 
 模型类型：
 
-- `pro`：`Flyelep Video 2.0 Pro`（高质量）
+- `pro`：`Flyelep Video 2.0 Pro`（高质量，默认）
 - `fast`：`Flyelep Video 2.0`（快速生成）
+- `ultra`：`Flyelep Video 2.5`（最高画质）
 
 视频业务标签：
 

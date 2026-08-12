@@ -60,7 +60,7 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | imgUrls | - | 图片链接字符串，多张时使用英文逗号分隔 |
-| scalingRatio | - | 增强强度：`1=轻度增强`、`2=标准增强`、`3=强力增强` |
+| scalingRatio | - | 放大倍数，取值范围 `1`-`8`，计费档位为 `2`、`4`、`8` |
 
 ### 参数映射规则
 
@@ -72,17 +72,18 @@ secretKey: 用户提供的API密钥
 - 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **scalingRatio**：
-- `1`：轻度增强，适合原图质量较好、只需温和提清晰度
-- `2`：标准增强，适合作为默认值
-- `3`：强力增强，适合原图较糊或需要更明显提升
+- 含义是放大倍数，不是增强强度档位
+- 取值必须在 `1`-`8` 之间，超出范围接口直接报错「放大倍数必须是8倍以内」
+- 计费只区分 `2`、`4`、`8` 三档：`2` 为基础单价，`4` 为 2 倍单价，`8` 为 3 倍单价；其余取值按基础单价计费
+- 工作流侧默认按 2 倍无损放大处理
 
 推荐默认规则：
 
-- 用户未指定增强强度时，默认传 `2`
-- 用户强调“轻微增强、尽量自然”时，传 `1`
-- 用户强调“尽可能清晰、强力修复”时，传 `3`
+- 用户未指定倍数时，默认传 `2`
+- 用户要求“放大 4 倍 / 更大尺寸”时，传 `4`
+- 用户要求“尽可能放大”时，传 `8`
 
-> **说明**：PDF 文档额外提示“AI 超清有较严格的图片规格限制，文档中已注明”，但当前可提取页面未包含该规格细则。因此调用前应优先使用常见、清晰、可公开访问的图片直链；若接口报规格错误，应以 Flyelep 最新文档或控制台提示为准。
+> **说明**：该接口按倍数放大原图，只做无损放大，不接收自然语言提示词。如果用户真正想要的是“提升清晰度、修复模糊”，应改用 AI 超清（image-clarity-enhance）技能，那里的 `enhanceStrength` 才是强度档位。
 
 ## 调用示例
 
@@ -91,7 +92,7 @@ secretKey: 用户提供的API密钥
 > - **Windows/PowerShell**：因 GBK 编码问题，必须先将 JSON 写入临时文件 `payload_temp.json`（UTF-8 无 BOM），再用 `curl.exe --% --data-binary @payload_temp.json` 发送请求。使用 Write 工具创建文件，或用 .NET API `[System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))`。调用后用 `rm payload_temp.json` 清理。
 > - **macOS/Linux**：bash/zsh 默认 UTF-8，可直接内联 JSON：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`
 
-### 示例 1：单张图片标准增强
+### 示例 1：单张图片 2 倍放大
 
 **前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
@@ -127,7 +128,7 @@ rm payload_temp.json
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg","scalingRatio":2}'
 ```
 
-### 示例 2：批量图片强力增强
+### 示例 2：批量图片 4 倍放大
 
 **前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
@@ -139,13 +140,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ```json
 {
   "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg",
-  "scalingRatio": 3
+  "scalingRatio": 4
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":3}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":4}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -160,7 +161,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":3}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":4}'
 ```
 
 ## 常见错误及解决方案
@@ -171,17 +172,17 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `imgUrls` 格式错误 | 该字段必须是字符串，多张图用英文逗号分隔，不是 JSON 数组 |
 | 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
-| `scalingRatio` 非 1/2/3 | 增强强度只支持 `1`、`2`、`3` |
-| 接口提示图片规格不符合要求 | Flyelep AI 超清对源图可能有限制，换用更规范的图片尺寸或格式后重试 |
-| 请求超时 | 批量图片较多或增强强度较高时，可适当增大超时时间 |
+| `放大倍数必须是8倍以内` | `scalingRatio` 超出 `1`-`8`，改用 `2`、`4` 或 `8` |
+| 接口提示图片规格不符合要求 | 换用更规范的图片尺寸或格式后重试 |
+| 请求超时 | 批量图片较多或放大倍数较高时，可适当增大超时时间 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 将多张 URL 用英文逗号拼接为 `imgUrls`
-4. 根据用户意图确定 `scalingRatio`
+4. 根据用户意图确定 `scalingRatio`（放大倍数，未指定时用 `2`）
 5. 在请求头中传入 `secretKey`，调用接口
 6. 将返回的结果按逗号拆分后逐个展示
 
-该接口不接收自然语言提示词，不需要构造额外文案。如果用户只是说“帮我变清晰一点”，优先使用默认的 `scalingRatio=2`；如果用户特别强调“不要过度锐化”，则使用 `1`。
+该接口不接收自然语言提示词，不需要构造额外文案。如果用户只是说“帮我变清晰一点”而没有提尺寸，应改用 AI 超清（image-clarity-enhance）技能；只有明确要“放大、提尺寸、提分辨率”时才用本技能。

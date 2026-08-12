@@ -102,12 +102,19 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| query | string(0,1000) | - | 用户生成海报的具体需求描述（最多1000个字符长度） |
-| platformType | string | Amazon | 平台类型 |
-| languageType | string | 英语 | 语言 |
-| videoModelType | String | - | 视频模型 |
-| needVoice | Boolean | true | 是否生成配音音频 |
-| duration | Integer | - | 视频时长（单位：秒，最少4秒，最高建议15秒） |
+| query | string(0,1000) | - | 视频生成的具体需求描述（最多1000个字符长度） |
+| duration | Integer | - | 视频时长（单位：秒，取值 4-60；超过单段模型上限的部分由工作流拆分为多段拼接） |
+
+> 服务端只强校验 `duration`（4-60 秒）。下表字段虽非强校验，但直接决定成片效果，调用前应与用户确认。
+
+### 建议确认的参数
+
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| platformType | String | Amazon | 平台类型 |
+| languageType | String | 英语 | 语言 |
+| videoModelType | String | pro | 视频模型档位 |
+| needVoice | Boolean | - | 是否生成配音音频 |
 | resolution | String | - | 分辨率 |
 | videoTag | String | - | 视频业务标签 |
 
@@ -116,6 +123,7 @@ secretKey: 用户提供的API密钥
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | aspectRatio | String | adaptive | 画面比例 |
+| needText | Boolean | false | 是否需要字幕 |
 | referenceImageStr | String | - | 参考图片，多个以英文逗号分隔 |
 | referenceVideoStr | String | - | 参考视频，多个以英文逗号分隔 |
 | referenceAudioStr | String | - | 参考音频，多个以英文逗号分隔 |
@@ -125,9 +133,9 @@ secretKey: 用户提供的API密钥
 ### 参数映射规则
 
 #### query（需求描述）
-- 用户生成海报的具体需求描述
+- 用户对视频的具体生成需求
 - 最多1000个字符长度
-- 直接传入用户对视频的生成需求
+- 保留用户原始意图，不要改写成另一个主题
 
 #### platformType（平台类型）
 支持以下平台：
@@ -140,20 +148,27 @@ secretKey: 用户提供的API密钥
 - 默认值：`英语`
 
 #### videoModelType（视频模型）
-- `pro`：Flyelep Video 2.0 Pro（高质量）
-- `fast`：Flyelep Video 2.0（快速生成）
+- `pro`：Flyelep Video 2.0 Pro（seedance 2.0，高质量，默认）
+- `fast`：Flyelep Video 2.0（seedance 2.0 fast，快速生成）
+- `ultra`：Flyelep Video 2.5（seedance 2.5，最高画质）
+- 只接受这三个取值，大小写不敏感；不传时按 `pro` 处理，传其它值接口报「videoModelType 仅支持 pro / fast / ultra」
 
 #### aspectRatio（画面比例）
 - `adaptive`：智能比例（默认）
 - `1:1`、`4:3`、`3:4`、`16:9`、`9:16`、`21:9`
 
 #### needVoice（配音控制）
-- `true`：有配音（默认）
+- `true`：有配音
 - `false`：无配音
 
+#### needText（字幕控制）
+- `true`：生成字幕
+- `false` 或不传：不生成字幕
+
 #### duration（视频时长）
-- 范围：最少4秒，最高建议15秒
-- 单位：秒
+- 范围：4-60 秒，单位为秒
+- 小于 4 秒报「视频时长 duration 最少为 4 秒」，大于 60 秒报「视频时长 duration 最多为 60 秒」
+- 超过单段模型上限的时长由工作流自动拆分为多段分镜后拼接，因此长视频耗时明显更久，轮询超时要放宽
 
 #### resolution（分辨率）
 - 支持：`480p`、`720p`、`1080p`、`2K`、`4K`
@@ -429,7 +444,8 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | query 超过1000字符 | 缩短需求描述内容 |
-| duration 超出范围 | 视频时长需在4-15秒之间 |
+| duration 超出范围 | 视频时长需在 4-60 秒之间 |
+| `videoModelType 仅支持 pro / fast / ultra` | 模型档位写错，改用 `pro`、`fast` 或 `ultra` |
 | referenceImageStr 图片数量超限 | 最多6张图片，且图片+视频+音频总数不超过6个 |
 | referenceVideoStr 视频数量/大小超限 | 最多3条视频，单个不超过50MB，总时长不超过15秒 |
 | referenceVideoStr 包含人像 | 禁止人像视频，请更换参考视频 |
@@ -463,7 +479,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的视频生成需求并写入 `query`
 3. 确定目标平台 `platformType` 和语言 `languageType`
-4. 选择视频模型 `videoModelType`：pro（高质量）或 fast（快速生成）
+4. 选择视频模型 `videoModelType`：pro（高质量，默认）、fast（快速生成）或 ultra（最高画质）
 5. 设置视频参数：分辨率、比例、时长、配音、业务标签等
 6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先调用 file-upload 技能上传）
 7. 在请求头中传入 `secretKey`

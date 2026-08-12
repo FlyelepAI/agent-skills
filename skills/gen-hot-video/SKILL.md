@@ -103,7 +103,7 @@ secretKey: 用户提供的API密钥
 | replaceUrl | - | 产品素材视频地址 |
 | sourceUrl | - | 爆款参考视频地址，必须包含视频（4-15秒以内） |
 | prompt | - | 提示词，最多1000个字符长度 |
-| modelType | - | 模型类型：`pro`=Flyelep Dance 2.0，`fast`=Flyelep Dance 2.0 Fast |
+| modelType | - | 模型类型：`pro`=seedance 2.0，`fast`=seedance 2.0 fast，`ultra`=seedance 2.5 |
 | resolution | - | 分辨率 |
 | duration | - | 视频时长（秒），4-15秒 |
 | language | - | 生成语言 |
@@ -119,8 +119,10 @@ secretKey: 用户提供的API密钥
 ### 参数映射规则
 
 **modelType**（模型类型）：
-- `pro`：Flyelep Dance 2.0（高质量）
-- `fast`：Flyelep Dance 2.0 Fast（快速生成）
+- `pro`：seedance 2.0（高质量）
+- `fast`：seedance 2.0 fast（快速生成）
+- `ultra`：seedance 2.5（最高画质）
+- 只接受这三个取值，大小写不敏感；传其它值接口直接拒绝
 
 **resolution**（分辨率）：
 - 支持：`480p`、`720p`、`1080p`、`4k`
@@ -133,7 +135,8 @@ secretKey: 用户提供的API密钥
 - 建议根据需求选择合适的时长
 
 **language**（生成语言）：
-- 中文简体、中文繁体、英语、马来语、葡萄牙语、韩语、日语、西班牙语、俄语等
+- 仅支持：中文简体、中文繁体、英文、马来语、葡萄牙语、韩语、日语、西班牙语、俄语
+- 必须原样使用上面的中文标签（例如是 `英文` 而不是 `英语`），传其它写法会被拒绝
 
 **replaceUrl**（产品素材）：
 - 产品视频地址，用于替换爆款视频中的产品

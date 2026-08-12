@@ -59,8 +59,8 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| imgUrls | - | 多张图片链接字符串，英文逗号分隔 |
-| enhanceStrength | - | 增强强度：`light`、`standard`、`strong` |
+| imgUrls | - | 图片链接字符串，单张直接传，多张用英文逗号分隔 |
+| enhanceStrength | - | 增强强度：`light`、`standard`、`strong`。**必须传**，缺失时接口会直接返回空结果 |
 
 ### 参数映射规则
 
@@ -69,12 +69,14 @@ secretKey: 用户提供的API密钥
 - 单张图片时直接传一个 URL 字符串
 - 多张图片时，用英文逗号 `,` 按顺序拼接
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
+- 也可以改用 `imageUrl` 字段传单张图片，两者二选一；同时传时以 `imgUrls` 为准
 - 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **enhanceStrength**：
-- `light`：轻度增强
-- `standard`：标准增强
-- `strong`：强力增强
+- `light`：轻度增强，按基础单价计费
+- `standard`：标准增强，按 2 倍单价计费
+- `strong`：强力增强，按 3 倍单价计费
+- 该字段不传时接口不会报错，而是直接返回空结果，因此每次调用都要显式传值
 
 推荐默认规则：
 
@@ -182,6 +184,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | `imgUrls` 格式错误 | 该字段必须是字符串，多张图用英文逗号分隔，不是 JSON 数组 |
 | 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
 | `enhanceStrength` 非法 | 只支持 `light`、`standard`、`strong` |
+| 返回 `data` 为空字符串 | 没传 `enhanceStrength`，补上该字段后重试 |
 | 图片规格不符合要求 | 检查格式、尺寸、长宽比和文件大小是否满足文档限制 |
 | 请求超时 | 批量图片较多或增强强度较高时，可适当增大超时时间 |
 
@@ -195,4 +198,4 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 6. 在请求头中传入 `secretKey`，调用接口
 7. 将返回的结果按逗号拆分后逐个展示
 
-该接口不接收自然语言提示词，不需要构造额外文案。当用户只是说“帮我变清晰一点”时，优先使用 `light`；如果用户已经用过无损放大 skill，但更需要遵守文档里的规格限制和 `light/standard/strong` 语义，则优先使用此技能。
+该接口不接收自然语言提示词，不需要构造额外文案。当用户只是说“帮我变清晰一点”时，用本技能并传 `light`；当用户明确要求“放大尺寸、提分辨率”时，改用无损放大（image-enlarge）技能，那里的 `scalingRatio` 是放大倍数。

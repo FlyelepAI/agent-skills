@@ -61,9 +61,9 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | sourceUrl | - | 原图链接 |
-| replaceImageUrl | - | 场景参考图链接，暂时只支持单图 |
+| replaceImageUrl | - | 场景参考图链接，最多 1 张 |
 | textPrompt | - | 用户提示词，描述目标场景 |
-| modelType | 0 | 模型类型：无论任何情况，都默认填 `0` |
+| modelType | 0 | 模型类型：`0`=gemini-2.5，`1`=gemini-3-pro，`9`=Flyelep Image 2；未指定时填 `0` |
 
 ### 参数映射规则
 
@@ -74,12 +74,19 @@ secretKey: 用户提供的API密钥
 
 **replaceImageUrl**：
 - 用于提供目标场景参考图
-- 暂时只支持单图
+- 只支持 1 张，传入多张（逗号分隔）会被接口拒绝，报「该操作类型最多只能上传1张图片」
 - 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **textPrompt**：
 - 用自然语言描述目标场景，如风格、环境、光线、氛围、陈列方式
 - 参考图负责场景基准，文字负责补充约束
+- 不传时接口会退化为默认提示词「替换场景」，效果不可控，因此实际调用应始终传入
+
+**modelType**：
+- `0`：gemini-2.5，按基础档计费
+- `1`：gemini-3-pro，按 3.0 档计费
+- `9`：Flyelep Image 2，与 `1` 同属 3.0 计费档
+- 该字段必传，用户未指定模型时填 `0`
 
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
@@ -102,7 +109,7 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "sourceUrl": "https://example.com/product.jpg",
-  "replaceImageUrl": "https://example.com/scene1.jpg,https://example.com/scene2.jpg",
+  "replaceImageUrl": "https://example.com/scene1.jpg",
   "textPrompt": "室内现代风格展厅，暖色灯光，突出高级陈列感",
   "modelType": 0
 }
@@ -110,7 +117,7 @@ secretKey: 用户提供的API密钥
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg,https://example.com/scene2.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":0}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":0}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -125,7 +132,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/sceneReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg,https://example.com/scene2.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":0}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/sceneReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product.jpg","replaceImageUrl":"https://example.com/scene1.jpg","textPrompt":"室内现代风格展厅，暖色灯光，突出高级陈列感","modelType":0}'
 ```
 
 ## 常见错误及解决方案
@@ -135,7 +142,8 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
-| `modelType` 非 0 | 模型类型只支持 `0` |
+| `无效的模型类型` | `modelType` 不在支持范围，改用 `0`、`1` 或 `9` |
+| `该操作类型最多只能上传1张图片` | `replaceImageUrl` 传了多张，场景替换只接受 1 张 |
 | `replaceImageUrl` 与 `textPrompt` 都没传或少传 | 两者都需要提供 |
 | 场景效果不理想 | 文字描述过于模糊，可补充风格、光线、空间类型、氛围等信息 |
 | 请求超时 | 原图较大、参考图较多或生成复杂时，可适当增大超时时间 |
