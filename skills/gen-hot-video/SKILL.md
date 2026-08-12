@@ -11,12 +11,9 @@ description: >-
 **注意：此接口为异步接口，只返回任务ID，需要通过 queryTaskResult 接口获取最终结果。**
 
 ## API 接口信息
-- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo`
-- **Content-Type**: `application/json`
-- **超时时间**: 建议 60-120 秒（获取任务结果需额外轮询，视频生成可能需要更长时间）
 
-## 认证方式
-所有 AI 工具接口均需在请求头中传入 `secretKey`。该密钥需由用户在 Flyelep 开放平台申请获得：https://www.flyelep.cn/controlboard 。
+- **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
+- **Content-Type**: `application/json`
 
 请求头示例：
 
@@ -25,9 +22,21 @@ Content-Type: application/json
 secretKey: 用户提供的API密钥
 ```
 
-> **安全说明**：`secretKey` 必须放在请求头中，这是 AI 工具接口的统一鉴权要求。不要将真实密钥写入技能文件、示例代码仓库或持久化配置中，应在运行时由用户动态提供。
+> **安全说明**：不要将真实密钥写入技能文件、示例代码仓库或持久化配置中，应在运行时由用户动态提供。
+
+### 创建任务
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo`
+- **超时时间**: 建议 60-120 秒（获取任务结果需额外轮询，视频生成可能需要更长时间）
+
+### 查询结果
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
+- **超时时间**: 建议 30 秒
 
 ## 请求 Body
+
+创建任务：
 ```json
 {
   "replaceUrl": "https://example.com/product_video.mp4",
@@ -43,8 +52,16 @@ secretKey: 用户提供的API密钥
 }
 ```
 
+查询结果：
+```json
+{
+  "agentGenerateTaskId": "任务ID"
+}
+```
+
 ## 响应格式
-提交请求（异步）：
+
+创建任务（异步）：
 ```json
 {
   "code": 200,
@@ -76,6 +93,7 @@ secretKey: 用户提供的API密钥
 - 将结果视频展示给用户
 
 ## 参数说明
+
 ### 必传参数
 
 > **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
@@ -91,77 +109,74 @@ secretKey: 用户提供的API密钥
 | language | - | 生成语言 |
 
 ### 可选参数
+
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | additionalPrompt | - | 补充提示词（可选） |
 | ratio | - | 视频生成比例 |
 | subtitle | - | 是否添加字幕，`true`/`false` |
 
-## 参数映射规则
-### modelType（模型类型）
+### 参数映射规则
+
+**modelType**（模型类型）：
 - `pro`：Flyelep Dance 2.0（高质量）
 - `fast`：Flyelep Dance 2.0 Fast（快速生成）
 
-### resolution（分辨率）
+**resolution**（分辨率）：
 - 支持：`480p`、`720p`、`1080p`、`4k`
 
-### ratio（视频比例）
+**ratio**（视频比例）：
 - 支持：`1:1`、`3:4`、`4:3`、`16:9`、`9:16`、`21:9`
 
-### duration（视频时长）
+**duration**（视频时长）：
 - 范围：4-15秒
 - 建议根据需求选择合适的时长
 
-### language（生成语言）
+**language**（生成语言）：
 - 中文简体、中文繁体、英语、马来语、葡萄牙语、韩语、日语、西班牙语、俄语等
 
-### replaceUrl（产品素材）
+**replaceUrl**（产品素材）：
 - 产品视频地址，用于替换爆款视频中的产品
 - 支持视频格式
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-### sourceUrl（爆款参考）
+**sourceUrl**（爆款参考）：
 - 爆款参考视频地址，用于提供风格参考
 - 必须包含视频，时长在4-15秒以内
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-### subtitle（字幕控制）
+**subtitle**（字幕控制）：
 - `true`：添加字幕
 - `false`：不添加字幕
 - 通过追加提示词可控制字幕内容
 
-## 异步任务查询
-生成视频为异步流程，需要：
-1. 调用 `generateHotVideo` 提交任务，获取 `agentGenerateTaskId`
-2. 轮询调用 `queryTaskResult` 查询任务状态
-3. 当 `taskStatus=2` 时，表示生成成功，获取结果
+## 异步任务流程
 
-### 查询任务结果接口
-- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
-- **请求体**:
-```json
-{
-  "agentGenerateTaskId": "任务ID"
-}
-```
+> **重要**：本接口为异步接口，必须**先调用主接口获取 `agentGenerateTaskId`，然后调用 `queryTaskResult` 接口轮询任务结果**，不能省略轮询步骤。
 
-- **轮询策略**：建议每5-10秒查询一次，视频生成耗时较长，超时时间建议设置为10分钟
+1. 调用主接口（`generateHotVideo`）提交任务，从响应中获取 `agentGenerateTaskId`
+2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每5-10秒查询一次）
+3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
+4. 当 `taskStatus=3` 时，表示生成失败
+
+> **轮询策略**：视频生成耗时较长，超时时间建议设置为10分钟
 
 ## 调用示例
-- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
-- **Windows/PowerShell 环境**：
-  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
-  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **macOS/Linux 环境**：
-  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
-  - 推荐内联写法：`curl -X POST URL -H "..." -H "..." --data-binary 'JSON单行内容'`，一步完成。
-  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`。
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
-**示例 1：提交爆款视频复刻任务**
+> **跨平台调用说明**：
+> - 请求头必须包含 `Content-Type: application/json; charset=utf-8` 和 `secretKey`
+> - **Windows/PowerShell**：因 GBK 编码问题，必须先将 JSON 写入临时文件 `payload_temp.json`（UTF-8 无 BOM），再用 `curl.exe --% --data-binary @payload_temp.json` 发送请求。使用 Write 工具创建文件，或用 .NET API `[System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))`。调用后用 `rm payload_temp.json` 清理。
+> - **macOS/Linux**：bash/zsh 默认 UTF-8，可直接内联 JSON：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 1：完整流程 - 提交任务并查询结果
+
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+
+**Windows/PowerShell**：
+
+步骤 1：创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "replaceUrl": "https://example.com/product_video.mp4",
@@ -175,59 +190,67 @@ secretKey: 用户提供的API密钥
   "language": "中文简体"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"突出产品功能，增强视觉冲击力","modelType":"pro","resolution":"720p","ratio":"1:1","duration":10,"subtitle":true,"language":"中文简体"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"突出产品功能，增强视觉冲击力","modelType":"pro","resolution":"720p","ratio":"1:1","duration":10,"subtitle":true,"language":"中文简体"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+步骤 2：执行创建任务请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
-
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"突出产品功能，增强视觉冲击力","modelType":"pro","resolution":"720p","ratio":"1:1","duration":10,"subtitle":true,"language":"中文简体"}'
-> ```
 
 步骤 3：清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 2：查询任务结果**
+步骤 4：使用返回的 `agentGenerateTaskId` 创建查询请求 `payload_temp.json`（两种方式任选其一）：
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+方式 A（使用 Write 工具）：
 ```json
 {
   "agentGenerateTaskId": "2072923591164715009"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"agentGenerateTaskId":"2072923591164715009"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"agentGenerateTaskId":"2072923591164715009"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+步骤 5：执行查询请求（每5-10秒轮询，直到 `taskStatus=2`）：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072923591164715009"}'
-> ```
-
-步骤 3：清理临时文件：
+步骤 6：清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 3：快速模式复刻（fast模型）**
+**macOS/Linux**：
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+创建任务：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"突出产品功能，增强视觉冲击力","modelType":"pro","resolution":"720p","ratio":"1:1","duration":10,"subtitle":true,"language":"中文简体"}'
+```
+
+查询结果（每5-10秒轮询，直到 `taskStatus=2`）：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072923591164715009"}'
+```
+
+### 示例 2：快速模式复刻（fast模型）
+
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+
+**Windows/PowerShell**：
+
+步骤 1：创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "replaceUrl": "https://example.com/product_video.mp4",
@@ -242,28 +265,35 @@ rm payload_temp.json
   "language": "英文"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"展示产品卖点，节奏紧凑","additionalPrompt":"快节奏剪辑，突出关键特性","modelType":"fast","resolution":"480p","ratio":"9:16","duration":6,"subtitle":true,"language":"英文"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"展示产品卖点，节奏紧凑","additionalPrompt":"快节奏剪辑，突出关键特性","modelType":"fast","resolution":"480p","ratio":"9:16","duration":6,"subtitle":true,"language":"英文"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+步骤 2：执行创建任务请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
-
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"展示产品卖点，节奏紧凑","additionalPrompt":"快节奏剪辑，突出关键特性","modelType":"fast","resolution":"480p","ratio":"9:16","duration":6,"subtitle":true,"language":"英文"}'
-> ```
 
 步骤 3：清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
+步骤 4：使用返回的 `agentGenerateTaskId` 查询结果（参考示例 1 步骤 4-6）
+
+**macOS/Linux**：
+
+创建任务：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"replaceUrl":"https://example.com/product_video.mp4","sourceUrl":"https://example.com/hot_video.mp4","prompt":"展示产品卖点，节奏紧凑","additionalPrompt":"快节奏剪辑，突出关键特性","modelType":"fast","resolution":"480p","ratio":"9:16","duration":6,"subtitle":true,"language":"英文"}'
+```
+
+查询结果（参考示例 1 的查询结果命令，替换 `agentGenerateTaskId`）
+
 ## 常见错误及解决方案
+
 | 错误 | 原因与解决 |
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
@@ -275,7 +305,15 @@ rm payload_temp.json
 | taskStatus=3 生成失败 | 检查视频素材质量，尝试更换素材或调整prompt |
 | 视频生成超时 | 视频生成耗时较长，增大超时时间并继续轮询 |
 
-## 提示词处理
+## 执行流程
+
+1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
+2. 收集产品素材视频 URL 和爆款参考视频 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+3. 与用户确认复刻需求，构造 `prompt` 和 `additionalPrompt`，选择 `modelType`、`resolution`、`ratio`、`duration`、`language`
+4. 在请求头中传入 `secretKey`，调用创建任务接口，获取 `agentGenerateTaskId`
+5. 使用 `agentGenerateTaskId` 轮询查询结果接口（每5-10秒一次），直到 `taskStatus=2`
+6. 将返回的结果视频展示给用户
+
 复刻时，prompt 应指导AI：
 - 保持爆款视频的整体风格、节奏和视觉效果
 - 将产品自然地融入到场景中

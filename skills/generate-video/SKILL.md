@@ -12,12 +12,13 @@ description: >-
 **注意：此接口为异步接口，只返回任务ID，需要通过 queryTaskResult 接口获取最终结果。**
 
 ## API 接口信息
+
+### 创建任务
+
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo`
 - **Content-Type**: `application/json`
-- **超时时间**: 建议 60-120 秒（获取任务结果需额外轮询，视频生成可能需要更长时间）
-
-## 认证方式
-所有 AI 工具接口均需在请求头中传入 `secretKey`。该密钥需由用户在 Flyelep 开放平台申请获得：https://www.flyelep.cn/controlboard 。
+- **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
+- **超时时间**: 建议 60-120 秒
 
 请求头示例：
 
@@ -28,7 +29,16 @@ secretKey: 用户提供的API密钥
 
 > **安全说明**：`secretKey` 必须放在请求头中，这是 AI 工具接口的统一鉴权要求。不要将真实密钥写入技能文件、示例代码仓库或持久化配置中，应在运行时由用户动态提供。
 
+### 查询结果
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
+- **Content-Type**: `application/json`
+- **认证方式**: 在请求 Header 中传入 `secretKey`
+- **说明**: 异步接口，需轮询获取最终视频 URL（视频生成耗时较长，整体轮询超时建议 20 分钟）
+
 ## 请求 Body
+
+创建任务：
 ```json
 {
   "query": "为这款智能手表制作一个展示视频，突出运动监测功能",
@@ -44,7 +54,15 @@ secretKey: 用户提供的API密钥
 }
 ```
 
+查询结果：
+```json
+{
+  "agentGenerateTaskId": "创建任务返回的任务ID"
+}
+```
+
 ## 响应格式
+
 提交请求（异步）：
 ```json
 {
@@ -94,6 +112,7 @@ secretKey: 用户提供的API密钥
 | videoTag | String | - | 视频业务标签 |
 
 ### 可选参数
+
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | aspectRatio | String | adaptive | 画面比例 |
@@ -103,59 +122,60 @@ secretKey: 用户提供的API密钥
 | firstFrame | String | - | 首帧图片 URL |
 | lastFrame | String | - | 尾帧图片 URL |
 
-## 参数映射规则
+### 参数映射规则
 
-### query（需求描述）
+#### query（需求描述）
 - 用户生成海报的具体需求描述
 - 最多1000个字符长度
 - 直接传入用户对视频的生成需求
 
-### platformType（平台类型）
+#### platformType（平台类型）
 支持以下平台：
 - 跨境电商：`Amazon`、`temu`、`Shopee`、`TikTok Shop`、`AliExpress`、`阿里巴巴国际站`、`OZON`、`Lazada`、`DHgate`、`Coupang`、`11Street`、`Wayfair`、`Etsy`、`Noon`、`eBay`
 - 中文电商：`淘宝`、`京东`、`拼多多`、`1688`、`小红书`、`抖音`
 - 默认值：`Amazon`
 
-### languageType（语言类型）
+#### languageType（语言类型）
 - 支持：`英语`、`中文简体`
 - 默认值：`英语`
 
-### videoModelType（视频模型）
+#### videoModelType（视频模型）
 - `pro`：Flyelep Video 2.0 Pro（高质量）
 - `fast`：Flyelep Video 2.0（快速生成）
 
-### aspectRatio（画面比例）
+#### aspectRatio（画面比例）
 - `adaptive`：智能比例（默认）
 - `1:1`、`4:3`、`3:4`、`16:9`、`9:16`、`21:9`
 
-### needVoice（配音控制）
+#### needVoice（配音控制）
 - `true`：有配音（默认）
 - `false`：无配音
 
-### duration（视频时长）
+#### duration（视频时长）
 - 范围：最少4秒，最高建议15秒
 - 单位：秒
 
-### resolution（分辨率）
+#### resolution（分辨率）
 - 支持：`480p`、`720p`、`1080p`、`2K`、`4K`
 
-### videoTag（视频业务标签）
+#### videoTag（视频业务标签）
 - `主图视频`：产品主图展示
 - `种草视频`：产品种草推荐
 - `品牌宣传`：品牌形象宣传
 
-### 生成方式
+#### 生成方式
 - 全能参考模式：使用参考图片、视频、音频生成视频，用户可以提供参考图片、视频、音频，但也可以不提供，此时视频会根据这些参考内容生成。
 - 首尾帧模式：使用首帧图片、尾帧图片生成视频，用户必须提供首帧图片、尾帧图片，视频会根据这些图片生成。
 - 在提交请求前，请询问用户使用哪种模式。
 
-### referenceImageStr（参考图片）
+#### referenceImageStr（参考图片）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多6张图片，单个不超过10MB
 - **注意**：图片、视频和音频文件总数不能超出6个
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-### referenceVideoStr（参考视频）
+#### referenceVideoStr（参考视频）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多3条视频，单个不超过50MB
@@ -163,57 +183,48 @@ secretKey: 用户提供的API密钥
 - **禁止人像**
 - **注意**：图片、视频和音频文件总数不能超出6个
 
-### referenceAudioStr（参考音频）
+#### referenceAudioStr（参考音频）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
 - 多个以英文逗号分隔
 - 最多3条音频，单个不超过50MB
 - 总时长不能超过15秒
 - **注意**：图片、视频和音频文件总数不能超出6个
 
-### firstFrame（首帧图片）
+#### firstFrame（首帧图片）
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：首帧图片不能同图片、视频、音频一起使用
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-### lastFrame（尾帧图片）
+#### lastFrame（尾帧图片）
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：尾帧图片不能同图片、视频、音频一起使用
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-## 异步任务查询
-生成视频为异步流程，需要：
-1. 调用 `generateVideo` 提交任务，获取 `agentGenerateTaskId`
-2. 轮询调用 `queryTaskResult` 查询任务状态
-3. 当 `taskStatus=2` 时，表示生成成功，获取结果
+## 异步任务流程
 
-### 查询任务结果接口
-- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
-- **请求体**:
-```json
-{
-  "agentGenerateTaskId": "任务ID"
-}
-```
+> **重要**：本接口为异步接口，必须**先调用主接口获取 `agentGenerateTaskId`，然后调用 `queryTaskResult` 接口轮询任务结果**，不能省略轮询步骤。
 
-- **轮询策略**：建议每5-10秒查询一次，视频生成耗时较长，超时时间建议设置为20分钟
+1. 调用主接口（`generateVideo`）提交任务，从响应中获取 `agentGenerateTaskId`
+2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 5-10 秒查询一次，视频生成耗时较长，整体轮询超时建议 20 分钟）
+3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
+4. 当 `taskStatus=3` 时，表示生成失败
 
 ## 调用示例
-- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
-- **Windows/PowerShell 环境**：
-  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
-  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **macOS/Linux 环境**：
-  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
-  - 推荐内联写法：`curl -X POST URL -H "..." -H "..." --data-binary 'JSON单行内容'`，一步完成。
-  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`。
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
-**示例 1：提交视频生成任务（基础）**
+> **跨平台调用说明**：
+> - 请求头必须包含 `Content-Type: application/json; charset=utf-8` 和 `secretKey`
+> - **Windows/PowerShell**：因 GBK 编码问题，必须先将 JSON 写入临时文件 `payload_temp.json`（UTF-8 无 BOM），再用 `curl.exe --% --data-binary @payload_temp.json` 发送请求。使用 Write 工具创建文件，或用 .NET API `[System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))`。调用后用 `rm payload_temp.json` 清理。
+> - **macOS/Linux**：bash/zsh 默认 UTF-8，可直接内联 JSON：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 1：提交视频生成任务（基础）
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "query": "为这款智能手表制作一个展示视频，突出运动监测功能",
@@ -227,59 +238,69 @@ secretKey: 用户提供的API密钥
   "videoTag": "主图视频"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"query":"为这款智能手表制作一个展示视频，突出运动监测功能","platformType":"Amazon","languageType":"英语","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":10,"resolution":"720p","videoTag":"主图视频"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款智能手表制作一个展示视频，突出运动监测功能","platformType":"Amazon","languageType":"英语","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":10,"resolution":"720p","videoTag":"主图视频"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"为这款智能手表制作一个展示视频，突出运动监测功能","platformType":"Amazon","languageType":"英语","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":10,"resolution":"720p","videoTag":"主图视频"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 2：查询任务结果**
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"为这款智能手表制作一个展示视频，突出运动监测功能","platformType":"Amazon","languageType":"英语","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":10,"resolution":"720p","videoTag":"主图视频"}'
+```
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 2：查询任务结果
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "agentGenerateTaskId": "2072923591164715009"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"agentGenerateTaskId":"2072923591164715009"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"agentGenerateTaskId":"2072923591164715009"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072923591164715009"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 3：带参考图片生成视频**
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072923591164715009"}'
+```
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 3：带参考图片生成视频
+
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "query": "根据提供的产品图片生成展示视频",
@@ -294,30 +315,34 @@ rm payload_temp.json
   "referenceImageStr": "https://example.com/product1.png,https://example.com/product2.png"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"query":"根据提供的产品图片生成展示视频","platformType":"淘宝","languageType":"中文简体","videoModelType":"pro","aspectRatio":"1:1","needVoice":true,"duration":8,"resolution":"1080p","videoTag":"种草视频","referenceImageStr":"https://example.com/product1.png,https://example.com/product2.png"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"根据提供的产品图片生成展示视频","platformType":"淘宝","languageType":"中文简体","videoModelType":"pro","aspectRatio":"1:1","needVoice":true,"duration":8,"resolution":"1080p","videoTag":"种草视频","referenceImageStr":"https://example.com/product1.png,https://example.com/product2.png"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"根据提供的产品图片生成展示视频","platformType":"淘宝","languageType":"中文简体","videoModelType":"pro","aspectRatio":"1:1","needVoice":true,"duration":8,"resolution":"1080p","videoTag":"种草视频","referenceImageStr":"https://example.com/product1.png,https://example.com/product2.png"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 4：快速模式生成视频（fast模型）**
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"根据提供的产品图片生成展示视频","platformType":"淘宝","languageType":"中文简体","videoModelType":"pro","aspectRatio":"1:1","needVoice":true,"duration":8,"resolution":"1080p","videoTag":"种草视频","referenceImageStr":"https://example.com/product1.png,https://example.com/product2.png"}'
+```
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 4：快速模式生成视频（fast模型）
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "query": "制作一个简单的产品展示视频",
@@ -331,30 +356,36 @@ rm payload_temp.json
   "videoTag": "主图视频"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"query":"制作一个简单的产品展示视频","platformType":"Amazon","languageType":"英语","videoModelType":"fast","aspectRatio":"9:16","needVoice":false,"duration":6,"resolution":"480p","videoTag":"主图视频"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"制作一个简单的产品展示视频","platformType":"Amazon","languageType":"英语","videoModelType":"fast","aspectRatio":"9:16","needVoice":false,"duration":6,"resolution":"480p","videoTag":"主图视频"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个简单的产品展示视频","platformType":"Amazon","languageType":"英语","videoModelType":"fast","aspectRatio":"9:16","needVoice":false,"duration":6,"resolution":"480p","videoTag":"主图视频"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 5：使用首帧和尾帧图片**
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个简单的产品展示视频","platformType":"Amazon","languageType":"英语","videoModelType":"fast","aspectRatio":"9:16","needVoice":false,"duration":6,"resolution":"480p","videoTag":"主图视频"}'
+```
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 5：使用首帧和尾帧图片
+
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "query": "制作一个产品宣传视频",
@@ -370,28 +401,29 @@ rm payload_temp.json
   "lastFrame": "https://example.com/last_frame.png"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"query":"制作一个产品宣传视频","platformType":"京东","languageType":"中文简体","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":12,"resolution":"4K","videoTag":"品牌宣传","firstFrame":"https://example.com/first_frame.png","lastFrame":"https://example.com/last_frame.png"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"制作一个产品宣传视频","platformType":"京东","languageType":"中文简体","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":12,"resolution":"4K","videoTag":"品牌宣传","firstFrame":"https://example.com/first_frame.png","lastFrame":"https://example.com/last_frame.png"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个产品宣传视频","platformType":"京东","languageType":"中文简体","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":12,"resolution":"4K","videoTag":"品牌宣传","firstFrame":"https://example.com/first_frame.png","lastFrame":"https://example.com/last_frame.png"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateVideo" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"制作一个产品宣传视频","platformType":"京东","languageType":"中文简体","videoModelType":"pro","aspectRatio":"16:9","needVoice":true,"duration":12,"resolution":"4K","videoTag":"品牌宣传","firstFrame":"https://example.com/first_frame.png","lastFrame":"https://example.com/last_frame.png"}'
+```
+
 ## 常见错误及解决方案
+
 | 错误 | 原因与解决 |
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
@@ -406,19 +438,6 @@ rm payload_temp.json
 | 服务繁忙（9999错误码） | 稍后重试 |
 | taskStatus=3 生成失败 | 检查提示词质量和素材，尝试简化描述或更换素材 |
 | 视频生成超时 | 视频生成耗时较长，增大超时时间并继续轮询 |
-
-## 提示词处理
-生成视频时，query 应指导AI：
-- 明确描述视频的主题和内容
-- 指定产品的关键特性和卖点
-- 说明视频的风格和氛围
-- 提及需要的视觉元素和效果
-
-**示例query：**
-- "为这款智能手表制作一个展示视频，突出运动监测功能"
-- "制作一个产品宣传片，展示咖啡机的使用方法和特点"
-- "生成一个创意视频，展示智能音箱的语音交互功能"
-- "创建一个品牌宣传视频，强调产品的科技感和时尚感"
 
 ## 素材使用规则
 
@@ -440,13 +459,27 @@ rm payload_temp.json
 - 需要指定视频开头/结尾画面时，使用 firstFrame 和 lastFrame
 
 ## 执行流程
-1. 收集用户的视频生成需求并写入 `query`
-2. 确定目标平台 `platformType` 和语言 `languageType`
-3. 选择视频模型 `videoModelType`：pro（高质量）或 fast（快速生成）
-4. 设置视频参数：分辨率、比例、时长、配音、业务标签等
-5. 根据需求添加参考素材或首帧/尾帧图片
-6. 在请求头中传入 `secretKey`
-7. 调用 `generateVideo` 提交任务
-8. 从响应中读取 `data.agentGenerateTaskId`
-9. 调用 `queryTaskResult` 轮询任务结果
-10. 将 `taskStatus=2` 的 `executeResult` 视频 URL 展示给用户
+
+1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
+2. 收集用户的视频生成需求并写入 `query`
+3. 确定目标平台 `platformType` 和语言 `languageType`
+4. 选择视频模型 `videoModelType`：pro（高质量）或 fast（快速生成）
+5. 设置视频参数：分辨率、比例、时长、配音、业务标签等
+6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先调用 image-upload 技能上传）
+7. 在请求头中传入 `secretKey`
+8. 调用创建任务接口提交任务，从响应中读取 `data.agentGenerateTaskId`
+9. 轮询调用查询结果接口，当 `taskStatus=2` 时获取视频 URL
+10. 将结果视频展示给用户
+
+**提示词处理：**
+生成视频时，query 应指导AI：
+- 明确描述视频的主题和内容
+- 指定产品的关键特性和卖点
+- 说明视频的风格和氛围
+- 提及需要的视觉元素和效果
+
+**示例query：**
+- "为这款智能手表制作一个展示视频，突出运动监测功能"
+- "制作一个产品宣传片，展示咖啡机的使用方法和特点"
+- "生成一个创意视频，展示智能音箱的语音交互功能"
+- "创建一个品牌宣传视频，强调产品的科技感和时尚感"

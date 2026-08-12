@@ -16,19 +16,8 @@ description: >-
 
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync`
 - **Content-Type**: `application/json`
-- **认证方式**: 在请求头中传入 `secretKey`
+- **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
 - **超时时间**: 建议 120-300 秒
-
-### 查询结果
-
-- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
-- **Content-Type**: `application/json`
-- **认证方式**: 在请求头中传入 `secretKey`
-- **说明**: 该接口是新版任务查询接口，优先使用；旧接口 `queryResult` 仍可作为兼容备选。
-
-## 认证方式
-
-在请求头中传入 `secretKey`。该密钥需由用户在 Flyelep 开放平台申请获得：https://www.flyelep.cn/controlboard 。
 
 请求头示例：
 
@@ -39,8 +28,16 @@ secretKey: 用户提供的API密钥
 
 > **安全说明**：`secretKey` 必须放在请求头中，不要将真实密钥写入技能文件、示例代码仓库或持久化配置中，应在运行时由用户动态提供。
 
-## 创建任务请求 Body
+### 查询结果
 
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
+- **Content-Type**: `application/json`
+- **认证方式**: 在请求 Header 中传入 `secretKey`
+- **说明**: 该接口是新版任务查询接口，优先使用；旧接口 `queryResult` 仍可作为兼容备选。
+
+## 请求 Body
+
+创建任务：
 ```json
 {
   "query": "生成钢笔的产品图",
@@ -52,9 +49,16 @@ secretKey: 用户提供的API密钥
 }
 ```
 
-## 创建任务响应格式
+查询结果：
+```json
+{
+  "agentGenerateTaskId": "创建任务返回的任务ID"
+}
+```
 
-成功：
+## 响应格式
+
+### 创建任务响应
 
 ```json
 {
@@ -69,15 +73,7 @@ secretKey: 用户提供的API密钥
 - `data.agentGenerateTaskId` 为异步任务 ID
 - 创建任务后必须继续调用查询结果接口获取最终图片 URL
 
-## 查询结果请求 Body
-
-```json
-{
-  "agentGenerateTaskId": "2054467932287070209"
-}
-```
-
-## 查询结果响应格式
+### 查询结果响应
 
 ```json
 {
@@ -96,7 +92,7 @@ secretKey: 用户提供的API密钥
 }
 ```
 
-### taskStatus 状态
+#### taskStatus 状态
 
 | 值 | 含义 |
 |----|------|
@@ -124,33 +120,30 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | apiImgUrlList | - | 参考图片 URL 数组，最多 6 张，建议单张图片小于 10MB |
+| channel | `promotion` | 特惠通道（`promotion`）/尊享通道（`premium`） |
 
-## 参数映射规则
+### 参数映射规则
 
-### query
-
+#### query
 - 直接传入用户对图片的生成需求
 - 保留用户原始创意意图，不要无故扩写成另一种产品或场景
 - 如果用户只给产品名，可补充为简洁的产品图生成需求，例如：`生成钢笔的产品图`
 - 最多 1000 个字符，超出时需要压缩描述
 
-### apiImgUrlList
-
+#### apiImgUrlList
 - 传入公网可访问的图片直链数组
 - 最多 6 张
 - 字段名是 `apiImgUrlList`，不是 `fileUrlList` 或 `imgUrlList`
 - 用户未提供参考图时，不传此字段
+- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
 
-### detailPictureNumber
-
+#### detailPictureNumber
 - 支持 `1`、`2`、`3`、`4`
 - 用户未指定数量时，默认传 `4`
 - 用户要求超过 4 张时，告知该接口单次最多生成 4 张，可分多次调用
 
-### aspectRatio
-
+#### aspectRatio
 支持以下比例：
-
 - `1:1`
 - `3:2`
 - `2:3`
@@ -165,30 +158,42 @@ secretKey: 用户提供的API密钥
 API 文档标注此参数为必需，但默认为空时接口随机选择比例。
 
 默认规则：
-
 - 用户明确指定比例时，原样传入
 - 用户未指定比例时，可传空字符串或不传，让接口随机选择
 - 横版优先推断为 `16:9`
 - 方图优先推断为 `1:1`
 - 竖版优先推断为 `9:16`
 
+#### channel（通道）
+- `promotion`：特惠通道（默认）
+- `premium`：尊享通道
+- 用户未指定时，默认 `promotion`，无需传入
+
+## 异步任务流程
+
+> **重要**：本接口为异步接口，必须**先调用主接口获取 `agentGenerateTaskId`，然后调用 `queryTaskResult` 接口轮询任务结果**，不能省略轮询步骤。
+
+1. 调用主接口（`allAroundCreationAsync`）提交任务，从响应中获取 `agentGenerateTaskId`
+2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 5-10 秒查询一次）
+3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
+4. 当 `taskStatus=3` 时，表示生成失败
+
 ## 调用示例
-- **重要**：调用 API 时，必须设置 `Content-Type: application/json; charset=utf-8` 请求头。以下分平台说明：
-- **Windows/PowerShell 环境**：
-  - 必须采用以下流程：**先将请求体 JSON 写入当前工作目录下的临时文件 `payload_temp.json`，再通过 Shell 工具调用 `curl.exe --data-binary @payload_temp.json` 发送请求**。这是因为 PowerShell 使用 GBK 编码，而服务端使用 UTF-8 解析，直接在命令行中嵌入中文 JSON 会导致乱码。
-  - 使用 `curl.exe`（而非 `curl`，后者在 PowerShell 中是 `Invoke-WebRequest` 的别名）。必须在 `curl.exe` 后加 `--%` 停止 PowerShell 解析，否则 `@` 会被误判为 splatting 操作符导致报错。
-  - **文件创建方式**：根据可用工具选择其一（均需确保 UTF-8 **无 BOM** 编码，否则服务端 JSON 解析会在 position 0 报错）：
-    - **方式 A（有 Write 工具）**：使用 Write 工具创建 `payload_temp.json`
-    - **方式 B（无 Write 工具）**：使用 Shell 的 .NET API 创建文件（`Set-Content -Encoding UTF8` 会带 BOM，不可用）
-- **macOS/Linux 环境**：
-  - bash/zsh 默认使用 UTF-8 编码，可直接内联中文 JSON，无需临时文件。命令中使用 `curl`（无需 `.exe`，无需 `--%`）。
-  - 推荐内联写法：`curl -X POST URL -H "..." -H "..." --data-binary 'JSON单行内容'`，一步完成。
-  - 也可使用临时文件方式：`curl --data-binary @payload_temp.json`。
-- **清理**：API 返回结果后，务必删除 `payload_temp.json` 临时文件（如使用了临时文件）。
 
-**示例 1：创建异步自由创作任务**
+> **跨平台调用说明**：
+> - 请求头必须包含 `Content-Type: application/json; charset=utf-8` 和 `secretKey`
+> - **Windows/PowerShell**：因 GBK 编码问题，必须先将 JSON 写入临时文件 `payload_temp.json`（UTF-8 无 BOM），再用 `curl.exe --% --data-binary @payload_temp.json` 发送请求。使用 Write 工具创建文件，或用 .NET API `[System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))`。调用后用 `rm payload_temp.json` 清理。
+> - **macOS/Linux**：bash/zsh 默认 UTF-8，可直接内联 JSON：`curl -X POST URL -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --data-binary 'JSON单行内容'`
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 1：创建异步自由创作任务
+
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "aspectRatio": "1:1",
@@ -199,67 +204,59 @@ API 文档标注此参数为必需，但默认为空时接口随机选择比例�
   ]
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-**示例 2：查询任务结果**
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"apiImgUrlList":["https://example.com/product.png"]}'
+```
 
-步骤 1：创建 `payload_temp.json`，内容如下：
+### 示例 2：查询任务结果
+
+**Windows/PowerShell**：
+
+创建 `payload_temp.json`（两种方式任选其一）：
+
+方式 A（使用 Write 工具）：
 ```json
 {
   "agentGenerateTaskId": "2054467932287070209"
 }
 ```
-> 方式 B（无 Write 工具）：
-> ```powershell
-> $json = '{"agentGenerateTaskId":"2054467932287070209"}'
-> [System.IO.File]::WriteAllText("payload_temp.json", $json, [System.Text.UTF8Encoding]::new($false))
-> ```
 
-步骤 2：使用 Shell 工具执行：
+方式 B（无 Write 工具，PowerShell 执行）：
+```powershell
+[System.IO.File]::WriteAllText("payload_temp.json", '{"agentGenerateTaskId":"2054467932287070209"}', [System.Text.UTF8Encoding]::new($false))
+```
+
+执行请求：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary @payload_temp.json
 ```
 
-> **macOS/Linux 内联写法**（无需临时文件）：
-> ```bash
-> curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"agentGenerateTaskId":"2054467932287070209"}'
-> ```
-
-步骤 3：清理临时文件：
+清理临时文件：
 ```bash
 rm payload_temp.json
 ```
 
-## 执行流程
-
-1. 收集用户的生成需求并写入 `query`
-2. 收集可选参考图并写入 `apiImgUrlList`
-3. 确定 `detailPictureNumber`，未指定时默认 `4`
-4. 确定 `aspectRatio`，未指定时可为空或不传
-5. 在请求头中传入 `secretKey`
-6. 调用 `allAroundCreationAsync` 创建任务
-7. 从响应中读取 `data.agentGenerateTaskId`
-8. 调用 `queryTaskResult` 轮询任务结果
-9. 将 `taskStatus=2` 的 `executeResult` 图片 URL 逐个展示给用户
+**macOS/Linux**：
+```bash
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"agentGenerateTaskId":"2054467932287070209"}'
+```
 
 ## 常见错误及解决方案
 
@@ -274,12 +271,21 @@ rm payload_temp.json
 | `apiImgUrlList` 无法访问 | 参考图 URL 不是公网直链、已过期，或源站限制访问 |
 | 比例不支持 | `aspectRatio` 必须使用文档规定的比例枚举 |
 
-## 提示词处理
+## 执行流程
 
+1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
+2. 收集用户的生成需求并写入 `query`
+3. 收集可选参考图并写入 `apiImgUrlList`（本地文件先调用 image-upload 技能上传）
+4. 确定 `detailPictureNumber`，未指定时默认 `4`
+5. 确定 `aspectRatio`，未指定时可为空或不传
+6. 在请求头中传入 `secretKey`
+7. 调用创建任务接口，从响应中读取 `data.agentGenerateTaskId`
+8. 轮询调用查询结果接口，将 `taskStatus=2` 的 `executeResult` 图片 URL 逐个展示给用户
+
+**提示词处理：**
 该接口适合宽泛的创意图片生成，但仍应把提示词写得明确、短而有约束。
 
 推荐提示词包含：
-
 - 产品或主体
 - 使用场景
 - 风格与氛围
