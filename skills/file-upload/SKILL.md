@@ -1,5 +1,5 @@
 ---
-name: image-upload
+name: file-upload
 description: >-
   通过 Flyelep 开放接口把本地图片、视频、音频上传到云存储，返回可公网访问的直链。
   当用户提供的是本地文件而不是 URL，或需要为其它 Flyelep 技能准备 imgUrls（抠图、翻译、延展、局部重绘等）、

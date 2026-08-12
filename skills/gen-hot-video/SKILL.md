@@ -138,12 +138,12 @@ secretKey: 用户提供的API密钥
 **replaceUrl**（产品素材）：
 - 产品视频地址，用于替换爆款视频中的产品
 - 支持视频格式
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **sourceUrl**（爆款参考）：
 - 爆款参考视频地址，用于提供风格参考
 - 必须包含视频，时长在4-15秒以内
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **subtitle**（字幕控制）：
 - `true`：添加字幕
@@ -170,7 +170,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：完整流程 - 提交任务并查询结果
 
-**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -244,7 +244,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 2：快速模式复刻（fast模型）
 
-**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -308,7 +308,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/genera
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集产品素材视频 URL 和爆款参考视频 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集产品素材视频 URL 和爆款参考视频 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 与用户确认复刻需求，构造 `prompt` 和 `additionalPrompt`，选择 `modelType`、`resolution`、`ratio`、`duration`、`language`
 4. 在请求头中传入 `secretKey`，调用创建任务接口，获取 `agentGenerateTaskId`
 5. 使用 `agentGenerateTaskId` 轮询查询结果接口（每5-10秒一次），直到 `taskStatus=2`

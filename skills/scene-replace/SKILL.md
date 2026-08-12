@@ -70,12 +70,12 @@ secretKey: 用户提供的API密钥
 **sourceUrl**：
 - 传入待替换场景的原图公网 URL
 - 必须是图片直链，不要传网页地址
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **replaceImageUrl**：
 - 用于提供目标场景参考图
 - 暂时只支持单图
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **textPrompt**：
 - 用自然语言描述目标场景，如风格、环境、光线、氛围、陈列方式
@@ -92,7 +92,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例：结合参考图与文本描述替换场景
 
-**前置步骤**：向用户索取原图和场景参考图的路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取原图和场景参考图的路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -143,7 +143,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集原图 URL 和场景参考图 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集原图 URL 和场景参考图 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 与用户确认目标场景需求，构造 `textPrompt`，`modelType` 默认填 `0`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 将返回的场景替换结果图片 URL 直接展示给用户

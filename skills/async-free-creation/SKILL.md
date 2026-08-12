@@ -135,7 +135,7 @@ secretKey: 用户提供的API密钥
 - 最多 6 张
 - 字段名是 `apiImgUrlList`，不是 `fileUrlList` 或 `imgUrlList`
 - 用户未提供参考图时，不传此字段
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 #### detailPictureNumber
 - 支持 `1`、`2`、`3`、`4`
@@ -187,7 +187,7 @@ API 文档标注此参数为必需，但默认为空时接口随机选择比例�
 
 ### 示例 1：创建异步自由创作任务
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -275,7 +275,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的生成需求并写入 `query`
-3. 收集可选参考图并写入 `apiImgUrlList`（本地文件先调用 image-upload 技能上传）
+3. 收集可选参考图并写入 `apiImgUrlList`（本地文件先调用 file-upload 技能上传）
 4. 确定 `detailPictureNumber`，未指定时默认 `4`
 5. 确定 `aspectRatio`，未指定时可为空或不传
 6. 在请求头中传入 `secretKey`

@@ -90,7 +90,7 @@ secretKey: 用户提供的API密钥
 - 数组格式，支持多个URL
 - 最多6个文件
 - 用于提供参考图片帮助AI生成更精准的文案
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 #### 结果处理
 - `data.options` 是一个数组，包含多个备选文案
@@ -139,7 +139,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 
 ### 示例 2：带参考图的文案优化（图片场景）
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -223,7 +223,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的基础描述并写入 `query`
-3. 如有参考图片，收集图片 URL 写入 `fileUrlList`（本地文件先调用 image-upload 技能上传）
+3. 如有参考图片，收集图片 URL 写入 `fileUrlList`（本地文件先调用 file-upload 技能上传）
 4. 根据场景选择 `generateType`：`image`（图片场景）或 `video`（视频场景）
 5. 在请求头中传入 `secretKey`，调用接口
 6. 将返回的 `data.options` 中所有创意文案选项展示给用户

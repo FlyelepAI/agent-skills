@@ -73,7 +73,7 @@ secretKey: 用户提供的API密钥
 **imageUrl**：
 - 传入单张待翻译图片的公网可访问 URL
 - 必须是图片直链，不要传网页地址
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **from（原语言）**：
 - 用户未指定源语言时，默认传 `"auto"`
@@ -116,7 +116,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：自动识别原语言，翻译成英文
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -153,7 +153,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：指定原语言后翻译成日语
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -202,7 +202,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集单张图片 URL `imageUrl`（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集单张图片 URL `imageUrl`（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 根据语言枚举表确定目标语言整数 `to`
 4. 原语言未知时传 `from="auto"`
 5. 在请求头中传入 `secretKey`，调用接口

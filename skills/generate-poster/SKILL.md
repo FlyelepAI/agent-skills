@@ -185,7 +185,7 @@ secretKey: 用户提供的API密钥
 #### fileUrlList（参考图片）
 - 数组格式，最多6张
 - 每个链接都应为公网可访问的图片直链
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 #### channel（通道）
 - `promotion`：特惠通道（默认）
@@ -291,7 +291,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 2：生成产品详情图（带参考图）
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 #### 步骤 1：创建任务
 
@@ -458,7 +458,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 > **注意**：白底主图不需要 `platformType`、`languageType`、`needText` 参数，且 `secretKey` 需要同时在 **Header** 和 **Body** 中传递。
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 #### 步骤 1：创建任务
 
@@ -554,7 +554,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 3. 确定目标平台 `platformType`、语言 `languageType` 和海报类型 `posterType`
 4. 选择 `generateType`：100=产品单图，101=白底主图，200=产品详情图
 5. 设置参数：`detailPictureNumber`、`modelEdition`、`needText`、`aspectRatio` 等
-6. 如用户提供参考图，收集图片 URL 写入 `fileUrlList`（本地文件先调用 image-upload 技能上传）
+6. 如用户提供参考图，收集图片 URL 写入 `fileUrlList`（本地文件先调用 file-upload 技能上传）
 7. 根据规则传入 `secretKey`（generateType=101 时同时在 Header 和 Body 中）
 8. 调用创建任务接口，从响应中读取任务 ID
 9. 轮询调用查询结果接口，当 `taskStatus=2` 时获取图片 URL

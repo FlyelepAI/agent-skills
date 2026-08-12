@@ -69,7 +69,7 @@ secretKey: 用户提供的API密钥
 - 传入待换色商品的原图公网 URL
 - 必须是图片直链，不要传网页地址
 - 原图应尽量清晰展示商品主体和原始颜色
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **textPrompt**：
 - 文档将其标为必需
@@ -99,7 +99,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：基础商品换色
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -136,7 +136,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：强调保留材质与光影的换色
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -186,7 +186,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集原图 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集原图 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 与用户确认换色需求，构造 `textPrompt`，`modelType` 默认填 `0`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 将返回的换色结果图片 URL 直接展示给用户

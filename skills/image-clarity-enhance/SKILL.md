@@ -69,7 +69,7 @@ secretKey: 用户提供的API密钥
 - 单张图片时直接传一个 URL 字符串
 - 多张图片时，用英文逗号 `,` 按顺序拼接
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **enhanceStrength**：
 - `light`：轻度增强
@@ -103,7 +103,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：单张图片标准超清
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -139,7 +139,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：批量图片轻度超清
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -188,7 +188,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 将多张 URL 用英文逗号拼接为 `imgUrls`
 4. 根据用户意图选择 `enhanceStrength`
 5. 确认源图尽量满足规格限制

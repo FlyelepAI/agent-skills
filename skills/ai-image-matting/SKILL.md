@@ -65,7 +65,7 @@ secretKey: 用户提供的API密钥
 - 接口要求传字符串，不是数组
 - 单张图片直接传 URL 字符串；多张图片用英文逗号 `,` 拼接
 - 每个链接都应为公网可访问的图片直链
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **结果格式**：
 - 抠图结果通常为透明背景的 `.png` 图片
@@ -80,7 +80,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：单张图片抠图
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -115,7 +115,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：批量图片抠图
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -162,7 +162,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 将多张 URL 用英文逗号拼接为 `imgUrls`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 将返回的结果按逗号拆分后逐个展示

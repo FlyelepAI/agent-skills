@@ -173,7 +173,7 @@ secretKey: 用户提供的API密钥
 - 多个以英文逗号分隔
 - 最多6张图片，单个不超过10MB
 - **注意**：图片、视频和音频文件总数不能超出6个
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 #### referenceVideoStr（参考视频）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
@@ -194,13 +194,13 @@ secretKey: 用户提供的API密钥
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：首帧图片不能同图片、视频、音频一起使用
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 #### lastFrame（尾帧图片）
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：尾帧图片不能同图片、视频、音频一起使用
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 ## 异步任务流程
 
@@ -294,7 +294,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 3：带参考图片生成视频
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -379,7 +379,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 
 ### 示例 5：使用首帧和尾帧图片
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -465,7 +465,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 3. 确定目标平台 `platformType` 和语言 `languageType`
 4. 选择视频模型 `videoModelType`：pro（高质量）或 fast（快速生成）
 5. 设置视频参数：分辨率、比例、时长、配音、业务标签等
-6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先调用 image-upload 技能上传）
+6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先调用 file-upload 技能上传）
 7. 在请求头中传入 `secretKey`
 8. 调用创建任务接口提交任务，从响应中读取 `data.agentGenerateTaskId`
 9. 轮询调用查询结果接口，当 `taskStatus=2` 时获取视频 URL

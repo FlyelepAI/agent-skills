@@ -73,7 +73,7 @@ secretKey: 用户提供的API密钥
 **sourceUrl**：
 - 传入待重绘原图的公网可访问 URL
 - 必须是图片直链，不要传网页地址
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **textPrompt**：
 - 直接描述要重绘的内容、目标风格和替换效果
@@ -90,7 +90,7 @@ secretKey: 用户提供的API密钥
 - 当用户提供明确的参考替换图时再传入
 - 适合用于“把某一区域替换成参考图风格或内容”的场景
 - 用户未提供参考图时，不传此字段
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 > **说明**：文档描述中提到“基于掩码图对图片指定区域进行局部重绘”，但当前参数表仅列出 `sourceUrl`、`textPrompt`、`replaceImageUrl`，没有单独的掩码字段。因此本 skill 按文档可见参数执行，不额外构造 mask 参数。
 
@@ -103,7 +103,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：仅通过文字提示进行局部重绘
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -139,7 +139,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：结合参考图进行局部替换
 
-**前置步骤**：向用户索取原图路径或 URL，以及参考替换图路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取原图路径或 URL，以及参考替换图路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -189,10 +189,10 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集原图 URL `sourceUrl`（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集原图 URL `sourceUrl`（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 明确保留项：主体、品牌标识、材质、构图等不应被误改的内容
 4. 明确修改项：背景、局部文案、某个物体、某种颜色或纹理，整理为 `textPrompt`
-5. 有参考图时再传 `replaceImageUrl`（同样需为公网链接，本地文件先调用 image-upload 技能上传）
+5. 有参考图时再传 `replaceImageUrl`（同样需为公网链接，本地文件先调用 file-upload 技能上传）
 6. 若用户只说"帮我改一下图"，应先补足最少必要信息，再调用接口
 7. 在请求头中传入 `secretKey`，调用接口并返回重绘后的图片 URL
 

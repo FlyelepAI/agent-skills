@@ -73,7 +73,7 @@ secretKey: 用户提供的API密钥
 - 接口要求传字符串数组，每个元素为一张图片 URL
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
 - 保留用户原始图片顺序，不要擅自重排 `imgUrlList`
-- 如果用户提供本地文件路径，先调用 image-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **ratio（目标比例）**：
 仅支持以下比例：
@@ -106,7 +106,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：单张图片延展为横版 16:9
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -144,7 +144,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：批量图片延展为方图 1:1
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 image-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
 
 **Windows/PowerShell**：
 
@@ -195,7 +195,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集用户提供的图片 URL 列表（如用户提供本地文件，先调用 image-upload 技能上传获取公网链接）
+2. 收集用户提供的图片 URL 列表（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
 3. 确定目标比例 `ratio`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 按输入顺序展示返回的图片 URL
