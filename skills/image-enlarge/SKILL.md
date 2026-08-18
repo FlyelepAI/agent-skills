@@ -30,6 +30,18 @@ secretKey: 用户提供的API密钥
 
 ```json
 {
+  "imageUrlList": [
+    "https://example.com/img1.jpg",
+    "https://example.com/img2.jpg"
+  ],
+  "scalingRatio": 2
+}
+```
+
+也可使用逗号分隔字符串形式（与 `imageUrlList` 二选一）：
+
+```json
+{
   "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg",
   "scalingRatio": 2
 }
@@ -57,24 +69,29 @@ secretKey: 用户提供的API密钥
 
 > **重要**：以下必传参数必须通过询问用户获取，agent 不可自行填写。调用本技能时，应先向用户列出必传参数与可选参数表格，由用户确认或提供后再执行。
 
-| 字段 | 默认值 | 说明 |
-|------|--------|------|
-| imgUrls | - | 图片链接字符串，多张时使用英文逗号分隔 |
-| scalingRatio | - | 放大倍数，取值范围 `1`-`8`，计费档位为 `2`、`4`、`8` |
+| 字段 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| imageUrlList | array | - | 图片链接数组（推荐），与 `imgUrls` 二选一，最多 6 张，建议单张 10MB 以内 |
+| imgUrls | String | - | 图片链接字符串，多张时使用英文逗号分隔，与 `imageUrlList` 二选一，最多 6 张 |
+| scalingRatio | Integer | - | 放大倍率：`2`=2 倍，`4`=4 倍，`8`=8 倍 |
 
 ### 参数映射规则
 
-**imgUrls**：
-- 接口要求传字符串，不是数组
+**imageUrlList**（推荐）：
+- JSON 数组，每个元素是一个图片直链
+- 最多 6 张，建议单张图片大小在 10MB 以内
+- 与 `imgUrls` 二选一，两者传其一即可，优先使用本参数
+
+**imgUrls**（兼容写法）：
+- 传字符串，不是数组
 - 单张图片时直接传一个 URL 字符串
-- 多张图片时，用英文逗号 `,` 按顺序拼接
+- 多张图片时，用英文逗号 `,` 按顺序拼接，最多 6 张
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
 - 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
 
 **scalingRatio**：
-- 含义是放大倍数，不是增强强度档位
-- 取值必须在 `1`-`8` 之间，超出范围接口直接报错「放大倍数必须是8倍以内」
-- 计费只区分 `2`、`4`、`8` 三档：`2` 为基础单价，`4` 为 2 倍单价，`8` 为 3 倍单价；其余取值按基础单价计费
+- 含义是放大倍率，不是增强强度档位
+- 仅支持 `2`、`4`、`8` 三个取值，超出范围接口直接报错「放大倍数必须是8倍以内」
 - 工作流侧默认按 2 倍无损放大处理
 
 推荐默认规则：
@@ -103,14 +120,14 @@ secretKey: 用户提供的API密钥
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg",
+  "imageUrlList": ["https://example.com/img1.jpg"],
   "scalingRatio": 2
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg","scalingRatio":2}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg"],"scalingRatio":2}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -125,7 +142,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg","scalingRatio":2}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg"],"scalingRatio":2}'
 ```
 
 ### 示例 2：批量图片 4 倍放大
@@ -139,14 +156,17 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg",
+  "imageUrlList": [
+    "https://example.com/img1.jpg",
+    "https://example.com/img2.jpg"
+  ],
   "scalingRatio": 4
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":4}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"],"scalingRatio":4}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -161,7 +181,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","scalingRatio":4}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"],"scalingRatio":4}'
 ```
 
 ## 常见错误及解决方案
@@ -170,18 +190,19 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| `imgUrls` 格式错误 | 该字段必须是字符串，多张图用英文逗号分隔，不是 JSON 数组 |
+| 图片参数格式错误 | `imageUrlList` 必须是 JSON 数组，`imgUrls` 必须是逗号分隔字符串，两者只传一个 |
+| 图片数量超限 | 单次最多 6 张，超出需分批调用 |
 | 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
-| `放大倍数必须是8倍以内` | `scalingRatio` 超出 `1`-`8`，改用 `2`、`4` 或 `8` |
+| `放大倍数必须是8倍以内` | `scalingRatio` 取值不合法，只能是 `2`、`4` 或 `8` |
 | 接口提示图片规格不符合要求 | 换用更规范的图片尺寸或格式后重试 |
 | 请求超时 | 批量图片较多或放大倍数较高时，可适当增大超时时间 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集一张或多张图片 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
-3. 将多张 URL 用英文逗号拼接为 `imgUrls`
-4. 根据用户意图确定 `scalingRatio`（放大倍数，未指定时用 `2`）
+2. 收集一张或多张图片 URL（最多 6 张；如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
+3. 将 URL 组装为 `imageUrlList` 数组（推荐），或用英文逗号拼接为 `imgUrls`
+4. 根据用户意图确定 `scalingRatio`（放大倍率，仅 `2`/`4`/`8`，未指定时用 `2`）
 5. 在请求头中传入 `secretKey`，调用接口
 6. 将返回的结果按逗号拆分后逐个展示
 

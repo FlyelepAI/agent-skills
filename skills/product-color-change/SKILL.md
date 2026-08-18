@@ -31,7 +31,7 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/product_red.jpg",
   "textPrompt": "将商品颜色改为深蓝色",
-  "modelType": 0
+  "modelType": 9
 }
 ```
 
@@ -61,7 +61,7 @@ secretKey: 用户提供的API密钥
 |------|--------|------|
 | sourceUrl | - | 原图链接 |
 | textPrompt | - | 换色提示词，如"将商品颜色改为深蓝色" |
-| modelType | 0 | 模型类型：`0`=gemini-2.5，`1`=gemini-3-pro，`9`=Flyelep Image 2；未指定时填 `0` |
+| modelType | 9 | 模型类型：当前仅支持传 `9`（Flyelep Image 2） |
 
 ### 可选参数
 
@@ -101,10 +101,8 @@ secretKey: 用户提供的API密钥
 - 只传 `prompt` 不传 `textPrompt` 时也能生效
 
 **modelType**：
-- `0`：gemini-2.5，按基础档计费
-- `1`：gemini-3-pro，按 3.0 档计费
-- `9`：Flyelep Image 2，与 `1` 同属 3.0 计费档
-- 该字段必传，用户未指定模型时填 `0`
+- 当前接口仅支持 `9`（Flyelep Image 2），必传
+- 传其他值会报「无效的模型类型」
 
 **replaceImageUrl**：
 - 可选，用于提供颜色参考图
@@ -132,13 +130,13 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/product_red.jpg",
   "textPrompt": "将商品颜色改为深蓝色",
-  "modelType": 0
+  "modelType": 9
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":0}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":9}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -153,7 +151,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":0}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_red.jpg","textPrompt":"将商品颜色改为深蓝色","modelType":9}'
 ```
 
 ### 示例 2：强调保留材质与光影的换色
@@ -169,13 +167,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 {
   "sourceUrl": "https://example.com/product_watch.jpg",
   "textPrompt": "将表带改为深棕色皮革观感，保留金属表盘和整体光影不变",
-  "modelType": 0
+  "modelType": 9
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":0}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":9}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -190,7 +188,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":0}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productColorChange" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/product_watch.jpg","textPrompt":"将表带改为深棕色皮革观感，保留金属表盘和整体光影不变","modelType":9}'
 ```
 
 ## 常见错误及解决方案
@@ -200,7 +198,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
-| `无效的模型类型` | `modelType` 不在支持范围，改用 `0`、`1` 或 `9` |
+| `无效的模型类型` | `modelType` 不在支持范围，当前仅支持 `9` |
 | `该操作类型最多只能上传1张图片` | `replaceImageUrl` 传了多张，商品换色只接受 1 张 |
 | 换色结果偏差较大 | `textPrompt` 过于模糊，可补充目标颜色、材质观感和保留项 |
 | 局部也被错误换色 | 原图主体边界不清晰，可换更干净的源图或在提示词里强调保留范围 |
@@ -210,7 +208,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集原图 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
-3. 与用户确认换色需求，构造 `textPrompt`，`modelType` 默认填 `0`
+3. 与用户确认换色需求，构造 `textPrompt`，`modelType` 固定填 `9`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 将返回的换色结果图片 URL 直接展示给用户
 

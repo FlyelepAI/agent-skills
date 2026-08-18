@@ -122,10 +122,11 @@ description: >-
 
 - `POST /prod-api/poster-design/api/v1/poster/aiTool/enlarge`
 
-放大倍数 `scalingRatio`：
+图片入参：`imageUrlList`（数组，推荐）与 `imgUrls`（逗号分隔字符串）二选一，最多 6 张，建议单张 10MB 以内
 
-- 取值范围 `1`-`8`，未指定时用 `2`
-- 计费档位为 `2`、`4`、`8` 三档
+放大倍率 `scalingRatio`：
+
+- 仅支持 `2`、`4`、`8`，未指定时用 `2`
 
 详细调用方式请查看 [skills/image-enlarge/SKILL.md](skills/image-enlarge/SKILL.md)。
 
@@ -161,9 +162,9 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`（基础计费档）
-- `1`：`gemini-3-pro`（3.0 计费档）
-- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
+- `9`：`Flyelep Image 2`（当前仅支持该取值）
+
+必传 `sourceUrl`、`textPrompt`、`modelType`，场景参考图 `replaceImageUrl` 可选且只支持单图。
 
 详细参数说明请查看 [skills/scene-replace/SKILL.md](skills/scene-replace/SKILL.md)。
 
@@ -183,9 +184,7 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`（基础计费档）
-- `1`：`gemini-3-pro`（3.0 计费档）
-- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
+- `9`：`Flyelep Image 2`（当前仅支持该取值）
 
 详细参数说明请查看 [skills/product-replace/SKILL.md](skills/product-replace/SKILL.md)。
 
@@ -205,9 +204,7 @@ description: >-
 
 模型类型：
 
-- `0`：`gemini-2.5`（基础计费档）
-- `1`：`gemini-3-pro`（3.0 计费档）
-- `9`：`Flyelep Image 2`（与 `1` 同属 3.0 计费档）
+- `9`：`Flyelep Image 2`（当前仅支持该取值）
 
 详细提示词建议请查看 [skills/product-color-change/SKILL.md](skills/product-color-change/SKILL.md)。
 

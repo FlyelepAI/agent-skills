@@ -31,7 +31,7 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/scene_with_old_product.jpg",
   "replaceImageUrl": "https://example.com/new_product.jpg",
-  "modelType": 0,
+  "modelType": 9,
   "textPrompt": "保留背景和光影，将主体商品替换为新的白色保温杯"
 }
 ```
@@ -63,7 +63,7 @@ secretKey: 用户提供的API密钥
 | sourceUrl | - | 原图链接，包含原始商品的图片 |
 | replaceImageUrl | - | 目标商品图链接，最多 3 张，多张用英文逗号分隔 |
 | textPrompt | - | 用户提示词 |
-| modelType | 0 | 模型类型：`0`=gemini-2.5，`1`=gemini-3-pro，`9`=Flyelep Image 2；未指定时填 `0` |
+| modelType | 9 | 模型类型：当前仅支持传 `9`（Flyelep Image 2） |
 
 ### 参数映射规则
 
@@ -86,10 +86,8 @@ secretKey: 用户提供的API密钥
 - 不传时接口会退化为默认提示词「替换商品」，实际调用应始终传入
 
 **modelType**：
-- `0`：gemini-2.5，按基础档计费
-- `1`：gemini-3-pro，按 3.0 档计费
-- `9`：Flyelep Image 2，与 `1` 同属 3.0 计费档
-- 该字段必传，用户未指定模型时填 `0`
+- 当前接口仅支持 `9`（Flyelep Image 2），必传
+- 传其他值会报「无效的模型类型」
 
 推荐写法示例：
 
@@ -119,14 +117,14 @@ secretKey: 用户提供的API密钥
 {
   "sourceUrl": "https://example.com/scene_with_old_product.jpg",
   "replaceImageUrl": "https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg",
-  "modelType": 0,
+  "modelType": 9,
   "textPrompt": "将商品替换为我上传的图片，颜色为红色"
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":0,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":9,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -141,7 +139,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":0,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/productReplace" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"sourceUrl":"https://example.com/scene_with_old_product.jpg","replaceImageUrl":"https://example.com/new_product_front.jpg,https://example.com/new_product_side.jpg","modelType":9,"textPrompt":"将商品替换为我上传的图片，颜色为红色"}'
 ```
 
 ## 常见错误及解决方案
@@ -152,7 +150,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `replaceImageUrl` 无法访问 | 目标商品图 URL 无效、不可公开访问，或链接格式不正确 |
-| `无效的模型类型` | `modelType` 不在支持范围，改用 `0`、`1` 或 `9` |
+| `无效的模型类型` | `modelType` 不在支持范围，当前仅支持 `9` |
 | `产品替换最多只能上传3张图片` | `replaceImageUrl` 传了超过 3 张，删减后重试 |
 | 替换结果不像目标商品 | 目标商品图不够清晰或角度不足，可增加参考图（最多 3 张）并补充 `textPrompt` |
 | 商品替换后背景不协调 | 提示词未强调保留原背景和光影，可在 `textPrompt` 中补充说明 |
@@ -162,7 +160,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集原图 URL 和目标商品图 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
-3. 与用户确认替换需求，构造 `textPrompt`，`modelType` 默认填 `0`
+3. 与用户确认替换需求，构造 `textPrompt`，`modelType` 固定填 `9`
 4. 在请求头中传入 `secretKey`，调用接口
 5. 将返回的商品替换结果图片 URL 直接展示给用户
 
