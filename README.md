@@ -1,9 +1,7 @@
----
-name: All
-description: >-
-  Flyelep AI Agent 技能集合，可通过仓库 URL 被 OpenClaw、Claude Code 等 AI 工具加载。
-  当前仓库中的技能全部基于 Flyelep API 接口文档整理，主要覆盖电商海报生成与 AI 图片工具两大类能力。
----
+# Flyelep AI Agent 技能集合
+
+可通过仓库 URL 被 OpenClaw、Claude Code 等 AI 工具加载。仓库中的技能全部基于 Flyelep API 接口文档整理，主要覆盖电商海报生成与 AI 图片工具两大类能力。
+
 ## 可用技能
 
 | 技能 | 描述 |
