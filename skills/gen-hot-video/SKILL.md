@@ -141,12 +141,12 @@ secretKey: 用户提供的API密钥
 **replaceUrl**（产品素材）：
 - 产品视频地址，用于替换爆款视频中的产品
 - 支持视频格式
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **sourceUrl**（爆款参考）：
 - 爆款参考视频地址，用于提供风格参考
 - 必须包含视频，时长在4-15秒以内
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **subtitle**（字幕控制）：
 - `true`：添加字幕
@@ -164,6 +164,46 @@ secretKey: 用户提供的API密钥
 
 > **轮询策略**：视频生成耗时较长，超时时间建议设置为10分钟
 
+## 本地文件上传
+
+用户提供的是本地文件路径而不是公网直链时，先把文件上传换取直链，再调用本接口。已安装 `file-upload` 技能时以该技能为准；未安装时按下面的说明直接调用上传接口。
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload`
+- **请求方式**: `multipart/form-data`，文件字段名固定为 `file`，单次只能上传一个文件，多个文件并发调用多次
+- **认证方式**: 请求头传 `secretKey`，与本技能使用同一个密钥
+- **超时时间**: 视频体积大、上传耗时长，建议 300 秒
+- **不要手动设置 `Content-Type` 请求头**，让 HTTP 客户端自动生成带 boundary 的值，手写会导致服务端解析失败
+- 视频仅支持 `mp4`、`mov`、`m4v`、`webm`、`avi`、`mkv`。**文件名必须带正确后缀**，服务端靠后缀判断格式，`mov`、`webm`、`mkv`、`m4v` 缺后缀时无法靠 Content-Type 回退，会被判为格式不支持
+- 视频不做内容审核，直接入库，不要上传来源不明的内容
+- 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
+- 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
+
+成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+
+```json
+{
+  "code": 200,
+  "msg": null,
+  "data": {
+    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.mp4",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.mp4",
+    "serviceProvider": null
+  }
+}
+```
+
+判断成功只看 `code`，业务失败时 HTTP 状态码仍是 200，`code` 为 500 或 9999，原因在 `msg` 里。
+
+```bash
+# Windows/PowerShell（用 curl.exe，PowerShell 里的 curl 是 Invoke-WebRequest 的别名）
+curl.exe -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 300 -F "file=@C:/path/to/reference.mp4"
+
+# macOS/Linux
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 300 -F "file=@./reference.mp4"
+```
+
+拿到 `code=9999`、`msg` 为 `服务繁忙，请稍后再试` 时，先自查三项：是否漏了 `secretKey` 请求头、表单字段名是否为 `file`、文件是否超出服务端体积上限（超限只会返回这条通用错误，此时应先压缩或裁剪再重试，不要原样重传）。密钥、格式、体积类错误重试无效，只有网络超时、5xx 和存储类异常值得重试。
+
 ## 调用示例
 
 > **跨平台调用说明**：
@@ -173,7 +213,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：完整流程 - 提交任务并查询结果
 
-**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -247,7 +287,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 2：快速模式复刻（fast模型）
 
-**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取产品素材视频和爆款参考视频的路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -311,7 +351,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/genera
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集产品素材视频 URL 和爆款参考视频 URL（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
+2. 收集产品素材视频 URL 和爆款参考视频 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 与用户确认复刻需求，构造 `prompt` 和 `additionalPrompt`，选择 `modelType`、`resolution`、`ratio`、`duration`、`language`
 4. 在请求头中传入 `secretKey`，调用创建任务接口，获取 `agentGenerateTaskId`
 5. 使用 `agentGenerateTaskId` 轮询查询结果接口（每5-10秒一次），直到 `taskStatus=2`

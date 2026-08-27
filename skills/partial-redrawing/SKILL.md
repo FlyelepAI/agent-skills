@@ -76,7 +76,7 @@ secretKey: 用户提供的API密钥
 **sourceUrl**：
 - 传入待重绘原图的公网可访问 URL
 - 必须是图片直链，不要传网页地址
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **textPrompt**：
 - 直接描述要重绘的内容、目标风格和替换效果
@@ -93,7 +93,7 @@ secretKey: 用户提供的API密钥
 - 当用户提供明确的参考替换图时再传入
 - 适合用于“把某一区域替换成参考图风格或内容”的场景
 - 用户未提供参考图时，不传此字段
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **maskDataUrl**：
 - 掩码图链接，白色区域表示要重绘的部分
@@ -107,6 +107,45 @@ secretKey: 用户提供的API密钥
 - `"9"`：Flyelep Image 2，计费按 3.1 档处理，实际模型由工作流路由
 - 不传时服务端按 `"0"` 处理；不要显式传 `null`，会导致解析失败
 
+## 本地文件上传
+
+用户提供的是本地文件路径而不是公网直链时，先把文件上传换取直链，再调用本接口。已安装 `file-upload` 技能时以该技能为准；未安装时按下面的说明直接调用上传接口。
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload`
+- **请求方式**: `multipart/form-data`，文件字段名固定为 `file`，单次只能上传一个文件，多个文件并发调用多次
+- **认证方式**: 请求头传 `secretKey`，与本技能使用同一个密钥
+- **超时时间**: 图片建议 60-120 秒
+- **不要手动设置 `Content-Type` 请求头**，让 HTTP 客户端自动生成带 boundary 的值，手写会导致服务端解析失败
+- 图片仅支持 `bmp`、`gif`、`jpg`、`jpeg`、`png`，`webp` 需先转成 `png` 或 `jpg`；文件名必须带正确后缀，服务端靠它判断格式
+- 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
+- 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
+
+成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+
+```json
+{
+  "code": 200,
+  "msg": null,
+  "data": {
+    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "serviceProvider": null
+  }
+}
+```
+
+判断成功只看 `code`，业务失败时 HTTP 状态码仍是 200，`code` 为 500 或 9999，原因在 `msg` 里。
+
+```bash
+# Windows/PowerShell（用 curl.exe，PowerShell 里的 curl 是 Invoke-WebRequest 的别名）
+curl.exe -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 120 -F "file=@C:/path/to/product.png"
+
+# macOS/Linux
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 120 -F "file=@./product.png"
+```
+
+图片入桶前会先过内容审核，审核不通过整个请求失败，需换图重试。拿到 `code=9999`、`msg` 为 `服务繁忙，请稍后再试` 时，先自查三项：是否漏了 `secretKey` 请求头、表单字段名是否为 `file`、文件是否超出服务端体积上限。密钥、格式、审核、体积类错误重试无效，只有网络超时、5xx 和存储类异常值得重试。
+
 ## 调用示例
 
 > **跨平台调用说明**：
@@ -116,7 +155,7 @@ secretKey: 用户提供的API密钥
 
 ### 示例 1：仅通过文字提示进行局部重绘
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -152,7 +191,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 
 ### 示例 2：结合参考图进行局部替换
 
-**前置步骤**：向用户索取原图路径或 URL，以及参考替换图路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取原图路径或 URL，以及参考替换图路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -203,10 +242,10 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集原图 URL `sourceUrl`（如用户提供本地文件，先调用 file-upload 技能上传获取公网链接）
+2. 收集原图 URL `sourceUrl`（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 明确保留项：主体、品牌标识、材质、构图等不应被误改的内容
 4. 明确修改项：背景、局部文案、某个物体、某种颜色或纹理，整理为 `textPrompt`
-5. 有参考图时再传 `replaceImageUrl`（同样需为公网链接，本地文件先调用 file-upload 技能上传）
+5. 有参考图时再传 `replaceImageUrl`（同样需为公网链接，本地文件先按「本地文件上传」章节换取公网直链）
 6. 若用户只说"帮我改一下图"，应先补足最少必要信息，再调用接口
 7. 在请求头中传入 `secretKey`，调用接口并返回重绘后的图片 URL
 

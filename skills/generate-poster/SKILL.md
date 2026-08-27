@@ -75,6 +75,7 @@ secretKey: 用户提供的API密钥
   "languageType": "英文",
   "detailPictureNumber": 10,
   "modelEdition": 3,
+  "channel": "promotion",
   "needText": true,
   "secretKey": "用户提供的API密钥",
   "fileUrlList": ["https://example.com/product.png"],
@@ -93,6 +94,7 @@ secretKey: 用户提供的API密钥
   "posterType": 5,
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "secretKey": "用户提供的API密钥",
   "fileUrlList": ["https://example.com/product.png"],
   "aspectRatio": "1:1"
@@ -183,7 +185,7 @@ secretKey: 用户提供的API密钥
 |------|--------|------|
 | fileUrlList | - | 参考图片 URL 数组，最多6张 |
 | aspectRatio | 随机 | 图片比例：1:1、3:2、2:3、3:4、4:3、4:5、5:4、9:16、16:9、21:9 |
-| channel | `premium` | 尊享通道（`premium`，默认）/特惠通道（`promotion`）。特惠通道仅支持 `modelEdition` 为 `3` 或 `9` |
+| channel | `promotion` | 特惠通道（`promotion`，默认）/尊享通道（`premium`）。特惠通道仅支持 `modelEdition` 为 `3` 或 `9` |
 
 ### 参数映射规则
 
@@ -214,7 +216,7 @@ secretKey: 用户提供的API密钥
 #### fileUrlList（参考图片）
 - 数组格式，最多6张
 - 每个链接都应为公网可访问的图片直链
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### modelEdition（模型类型）
 - `2`：Flyelep 2.0（`posterType=5` 时为 gemini-2.5，`posterType=6` 时为 doubao-seedream）
@@ -223,9 +225,19 @@ secretKey: 用户提供的API密钥
 - 用户未指定模型时不传此字段即可，服务端按 `3` 处理
 
 #### channel（通道）
-- `premium`：尊享通道，不传时的默认值，支持全部模型
-- `promotion`：特惠通道，**仅支持 `modelEdition` 为 `3`（Flyelep 3.0）或 `9`（Flyelep Image 2）**，与其它模型组合会被接口拒绝
-- 用户未指定通道时不传此字段
+- `promotion`：特惠通道，**本技能的默认通道**，线路更经济，**仅支持 `modelEdition` 为 `3`（Flyelep 3.0）或 `9`（Flyelep Image 2）**
+- `premium`：尊享通道，官方专线，支持全部模型
+
+**默认规则：用户没有指定通道时，一律显式传 `"channel": "promotion"`。** `modelEdition` 不传时默认就是 `3`，正好在特惠通道的支持范围内，两者可以直接组合。
+
+只有这两种情况才传 `premium`：
+
+- 用户明确要求走尊享通道
+- 本次要用 `modelEdition=2`（Flyelep 2.0），特惠通道不支持该模型
+
+**显式传 `promotion` 又搭配 `modelEdition=2` 时，接口会直接报错拒绝，不会自动降级**，所以选模型和选通道必须一起决定：一旦用户要求 Flyelep 2.0，通道就要跟着改成 `premium`。
+
+> 完全不传 `channel` 时，服务端也是按特惠通道处理，并且在模型不支持特惠时自动回落尊享。但显式传值能让通道和计费可预期，因此按上面的规则明确传入，不要依赖服务端兜底。
 
 ## 异步任务流程
 
@@ -245,6 +257,45 @@ secretKey: 用户提供的API密钥
 5. 逐个展示图片 URL 给用户
 
 > **连接断开就拿不回结果**：同步接口不返回任务 ID，客户端超时、网关断连或进程退出后，这次生成的结果无法再查询（算力照常扣除）。需要可靠拿到结果时改用异步模式。
+
+## 本地文件上传
+
+用户提供的是本地文件路径而不是公网直链时，先把文件上传换取直链，再调用本接口。已安装 `file-upload` 技能时以该技能为准；未安装时按下面的说明直接调用上传接口。
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload`
+- **请求方式**: `multipart/form-data`，文件字段名固定为 `file`，单次只能上传一个文件，多个文件并发调用多次
+- **认证方式**: 请求头传 `secretKey`，与本技能使用同一个密钥
+- **超时时间**: 图片建议 60-120 秒
+- **不要手动设置 `Content-Type` 请求头**，让 HTTP 客户端自动生成带 boundary 的值，手写会导致服务端解析失败
+- 图片仅支持 `bmp`、`gif`、`jpg`、`jpeg`、`png`，`webp` 需先转成 `png` 或 `jpg`；文件名必须带正确后缀，服务端靠它判断格式
+- 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
+- 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
+
+成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+
+```json
+{
+  "code": 200,
+  "msg": null,
+  "data": {
+    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "serviceProvider": null
+  }
+}
+```
+
+判断成功只看 `code`，业务失败时 HTTP 状态码仍是 200，`code` 为 500 或 9999，原因在 `msg` 里。
+
+```bash
+# Windows/PowerShell（用 curl.exe，PowerShell 里的 curl 是 Invoke-WebRequest 的别名）
+curl.exe -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 120 -F "file=@C:/path/to/product.png"
+
+# macOS/Linux
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 120 -F "file=@./product.png"
+```
+
+图片入桶前会先过内容审核，审核不通过整个请求失败，需换图重试。拿到 `code=9999`、`msg` 为 `服务繁忙，请稍后再试` 时，先自查三项：是否漏了 `secretKey` 请求头、表单字段名是否为 `file`、文件是否超出服务端体积上限。密钥、格式、审核、体积类错误重试无效，只有网络超时、5xx 和存储类异常值得重试。
 
 ## 调用示例
 
@@ -271,6 +322,7 @@ secretKey: 用户提供的API密钥
   "languageType": "英文",
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥"
 }
@@ -278,7 +330,7 @@ secretKey: 用户提供的API密钥
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -293,7 +345,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -335,7 +387,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 2：生成产品详情图（带参考图）
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 #### 步骤 1：创建任务
 
@@ -353,6 +405,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "languageType": "英文",
   "detailPictureNumber": 5,
   "modelEdition": 3,
+  "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥",
   "fileUrlList": ["https://example.com/product1.png", "https://example.com/product2.png"],
@@ -362,7 +415,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -377,7 +430,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -435,6 +488,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "languageType": "中文简体",
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥",
   "aspectRatio": "1:1"
@@ -443,7 +497,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -458,7 +512,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -502,7 +556,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 > **注意**：白底主图不需要 `platformType`、`languageType`、`needText` 参数。
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 #### 步骤 1：创建任务
 
@@ -518,6 +572,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "posterType": 5,
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "secretKey": "你的密钥",
   "aspectRatio": "1:1"
 }
@@ -525,7 +580,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -540,7 +595,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -598,6 +653,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "languageType": "英文",
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥"
 }
@@ -605,7 +661,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求（`--max-time 960` 留出比服务端 900 秒更长的余量）：
@@ -620,7 +676,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"needText":true,"secretKey":"你的密钥"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
 ```
 
 处理结果：把 `data` 按 `;` 拆分，取出以 `http` 开头的片段作为图片 URL 展示给用户。
@@ -640,6 +696,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
   "posterType": 5,
   "detailPictureNumber": 1,
   "modelEdition": 3,
+  "channel": "promotion",
   "secretKey": "你的密钥",
   "aspectRatio": "1:1"
 }
@@ -647,7 +704,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -662,7 +719,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteBgMainImgGen" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteBgMainImgGen" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 ## 常见错误及解决方案
@@ -688,12 +745,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteB
 3. 确定目标平台 `platformType`、语言 `languageType` 和海报类型 `posterType`
 4. 选择 `generateType`：100=产品单图，101=白底主图，200=产品详情图
 5. 设置参数：`detailPictureNumber`、`modelEdition`、`needText`、`aspectRatio` 等
-6. 如用户提供参考图，收集图片 URL 写入 `fileUrlList`（本地文件先调用 file-upload 技能上传）
-7. 在请求头中传入 `secretKey`
-8. 选择调用模式：默认异步；用户明确要求"一次请求出图"时才用同步
-9. 异步模式：调用 `/generateAsync` 读取任务 ID → 轮询 `/queryTaskResult` 直到 `taskStatus=2` → 取 `executeResult`
-10. 同步模式：调用 `/generate`（白底主图可用 `/whiteBgMainImgGen`），超时设 900 秒以上 → 把 `data` 按 `;` 拆分取出图片 URL
-11. 将生成的图片逐个展示给用户
+6. 设置通道 `channel`：默认传 `promotion`（特惠通道）；用户要求尊享通道或需要 `modelEdition=2` 时才传 `premium`
+7. 如用户提供参考图，收集图片 URL 写入 `fileUrlList`（本地文件先按「本地文件上传」章节换取公网直链）
+8. 在请求头中传入 `secretKey`
+9. 选择调用模式：默认异步；用户明确要求"一次请求出图"时才用同步
+10. 异步模式：调用 `/generateAsync` 读取任务 ID → 轮询 `/queryTaskResult` 直到 `taskStatus=2` → 取 `executeResult`
+11. 同步模式：调用 `/generate`（白底主图可用 `/whiteBgMainImgGen`），超时设 900 秒以上 → 把 `data` 按 `;` 拆分取出图片 URL
+12. 将生成的图片逐个展示给用户
 
 **提示词处理：**
 - 基于参考图生成：将用户的产品描述传入 `query`，通过 `fileUrlList` 附上参考图片 URL。仅在描述明显不足时才优化

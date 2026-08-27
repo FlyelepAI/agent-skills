@@ -188,7 +188,7 @@ secretKey: 用户提供的API密钥
 - 多个以英文逗号分隔
 - 最多6张图片，单个不超过10MB
 - **注意**：图片、视频和音频文件总数不能超出6个
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### referenceVideoStr（参考视频）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
@@ -197,6 +197,7 @@ secretKey: 用户提供的API密钥
 - 总时长不能超过15秒
 - **禁止人像**
 - **注意**：图片、视频和音频文件总数不能超出6个
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### referenceAudioStr（参考音频）
 - 当用户指定使用全能参考模式的时候，才可以使用，但可以为空；如果是首尾帧模式的时候，此参数必须为空，不能使用
@@ -204,18 +205,19 @@ secretKey: 用户提供的API密钥
 - 最多3条音频，单个不超过50MB
 - 总时长不能超过15秒
 - **注意**：图片、视频和音频文件总数不能超出6个
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### firstFrame（首帧图片）
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：首帧图片不能同图片、视频、音频一起使用
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### lastFrame（尾帧图片）
 - 当用户指定使用首尾帧模式的时候，才可以使用，此时要求该参数不能为空
 - 只能上传一张图片
 - **重要**：尾帧图片不能同图片、视频、音频一起使用
-- 如果用户提供本地文件路径，先调用 file-upload 技能上传文件获取公网链接，再填入此参数
+- 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 ## 异步任务流程
 
@@ -225,6 +227,49 @@ secretKey: 用户提供的API密钥
 2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 5-10 秒查询一次，视频生成耗时较长，整体轮询超时建议 20 分钟）
 3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
 4. 当 `taskStatus=3` 时，表示生成失败
+
+## 本地文件上传
+
+用户提供的是本地文件路径而不是公网直链时，先把文件上传换取直链，再调用本接口。已安装 `file-upload` 技能时以该技能为准；未安装时按下面的说明直接调用上传接口。
+
+- **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload`
+- **请求方式**: `multipart/form-data`，文件字段名固定为 `file`，单次只能上传一个文件，多个文件并发调用多次
+- **认证方式**: 请求头传 `secretKey`，与本技能使用同一个密钥
+- **超时时间**: 图片建议 60-120 秒；视频、音频体积大，建议 300 秒
+- **不要手动设置 `Content-Type` 请求头**，让 HTTP 客户端自动生成带 boundary 的值，手写会导致服务端解析失败
+- 支持格式：图片 `bmp`、`gif`、`jpg`、`jpeg`、`png`；视频 `mp4`、`mov`、`m4v`、`webm`、`avi`、`mkv`；音频 `mp3`、`wav`、`m4a`、`aac`、`ogg`、`flac`。图片的 `webp` 不支持，需先转成 `png` 或 `jpg`
+- **文件名必须带正确后缀**，服务端靠后缀判断格式。`mov`、`webm`、`mkv`、`m4v` 和全部音频格式无法靠 Content-Type 回退，缺后缀会被判为格式不支持
+- 图片入桶前会先过内容审核，审核不通过整个请求失败，需换图重试；视频和音频不做审核，直接入库
+- 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
+- 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
+
+成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+
+```json
+{
+  "code": 200,
+  "msg": null,
+  "data": {
+    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.mp4",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.mp4",
+    "serviceProvider": null
+  }
+}
+```
+
+判断成功只看 `code`，业务失败时 HTTP 状态码仍是 200，`code` 为 500 或 9999，原因在 `msg` 里。
+
+```bash
+# Windows/PowerShell（用 curl.exe，PowerShell 里的 curl 是 Invoke-WebRequest 的别名）
+curl.exe -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 300 -F "file=@C:/path/to/reference.mp4"
+
+# macOS/Linux
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" -H "secretKey: 你的密钥" --max-time 300 -F "file=@./reference.mp4"
+```
+
+上传成功的文件还要满足本技能自己的素材限制（参考图片单个不超过 10MB、参考视频单个不超过 50MB 且总时长不超过 15 秒等），详见上面的参数映射规则。
+
+拿到 `code=9999`、`msg` 为 `服务繁忙，请稍后再试` 时，先自查三项：是否漏了 `secretKey` 请求头、表单字段名是否为 `file`、文件是否超出服务端体积上限（超限只会返回这条通用错误，此时应先压缩或裁剪再重试，不要原样重传）。密钥、格式、审核、体积类错误重试无效，只有网络超时、5xx 和存储类异常值得重试。
 
 ## 调用示例
 
@@ -309,7 +354,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 ### 示例 3：带参考图片生成视频
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -394,7 +439,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 
 ### 示例 5：使用首帧和尾帧图片
 
-**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先调用 file-upload 技能上传获取公网链接。
+**前置步骤**：向用户索取图片路径或 URL。如用户提供本地文件，先按「本地文件上传」章节换取公网直链。
 
 **Windows/PowerShell**：
 
@@ -481,7 +526,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 3. 确定目标平台 `platformType` 和语言 `languageType`
 4. 选择视频模型 `videoModelType`：pro（高质量，默认）、fast（快速生成）或 ultra（最高画质）
 5. 设置视频参数：分辨率、比例、时长、配音、业务标签等
-6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先调用 file-upload 技能上传）
+6. 根据需求添加参考素材或首帧/尾帧图片（本地文件先按「本地文件上传」章节换取公网直链）
 7. 在请求头中传入 `secretKey`
 8. 调用创建任务接口提交任务，从响应中读取 `data.agentGenerateTaskId`
 9. 轮询调用查询结果接口，当 `taskStatus=2` 时获取视频 URL
