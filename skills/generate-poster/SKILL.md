@@ -74,7 +74,7 @@ secretKey: 用户提供的API密钥
   "platformType": "amazon",
   "languageType": "英文",
   "detailPictureNumber": 10,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "needText": true,
   "secretKey": "用户提供的API密钥",
@@ -93,7 +93,7 @@ secretKey: 用户提供的API密钥
   "generateType": 101,
   "posterType": 5,
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "secretKey": "用户提供的API密钥",
   "fileUrlList": ["https://example.com/product.png"],
@@ -171,11 +171,11 @@ secretKey: 用户提供的API密钥
 |------|--------|------|
 | query | - | 生图需求描述，最多1000个字符 |
 | generateType | 200 | 100=产品单图，101=白底主图，200=产品详情图 |
-| posterType | 5 | 5=跨境电商，6=中文电商 |
+| posterType | 由平台推导 | 5=跨境电商，6=中文电商。见「平台联动规则」 |
 | platformType | amazon | 电商平台（见下方映射表）。**generateType=101 时不需要** |
-| languageType | 英文 | 生成图片上的文案语种。**generateType=101 时不需要** |
+| languageType | 由平台推导 | 生成图片上的文案语种：中文平台默认 `中文简体`，跨境平台默认 `英文`。**generateType=101 时不需要** |
 | detailPictureNumber | 10 | 产品单图限1张；详情图可选5、10、15张 |
-| modelEdition | 3 | 模型类型：2=Flyelep 2.0，3=Flyelep 3.0（默认），9=Flyelep Image 2 |
+| modelEdition | 9 | 模型类型：2=Flyelep 2.0，3=Flyelep 3.0，9=Flyelep Image 2（默认） |
 | needText | true | 图片上是否包含文案。**generateType=101 时不需要** |
 | secretKey | - | API 密钥，放在 Header 或 Body 中均可，Header 优先 |
 
@@ -189,18 +189,31 @@ secretKey: 用户提供的API密钥
 
 ### 参数映射规则
 
+#### 平台联动规则（先定平台，再推导 posterType 和 languageType）
+
+用户提到平台名后，`posterType` 和 `languageType` 都由平台推导，不要再反过来问用户，也不要一律套用跨境的英文默认值：
+
+| 用户提到的平台 | platformType | posterType | languageType 默认值 |
+|----------------|--------------|------------|---------------------|
+| 淘宝、天猫、京东、拼多多、1688、小红书、抖音（国内） | 对应中文平台名 | 6 | `中文简体` |
+| Amazon、Temu、Shopee、TikTok Shop、AliExpress、OZON、eBay、Lazada、Wish 等 | 对应英文平台名 | 5 | `英文` |
+
+- 用户明确指定了语种（例如"淘宝的图但文案用英文"、"Amazon 日语版"）时，以用户指定的为准，`posterType` 仍按平台归属决定
+- 用户只说"电商图"没提平台时，才需要询问目标平台；询问时按中文电商 / 跨境电商两类给选项
+- 用户用中文描述需求但指定了跨境平台，不等于要中文文案，仍默认 `英文`
+
 #### platformType（电商平台）
 - 跨境电商：`amazon`、`Temu`、`Shopee`、`TikTok Shop`、`AliExpress`、`OZON`
 - 中文电商：`淘宝`、`京东`、`拼多多`、`1688`、`小红书`
 
 #### languageType（文案语种）
-- 跨境：英文、俄语、日语、韩语、阿拉伯语、德语、西班牙语、法语、泰语、马来语、越南语、葡萄牙语、菲律宾语、印尼语、意大利语、荷兰语、波兰语、中文繁体
-- 中文：中文简体
+- 跨境：英文（默认）、俄语、日语、韩语、阿拉伯语、德语、西班牙语、法语、泰语、马来语、越南语、葡萄牙语、菲律宾语、印尼语、意大利语、荷兰语、波兰语、中文繁体
+- 中文：中文简体（中文平台默认）
 
 #### posterType（海报类型）
-根据市场区域选择，再搭配 modelEdition：
-- 跨境电商 → `posterType=5`
-- 中文电商 → `posterType=6`
+根据市场区域选择：
+- 跨境电商 → `posterType=5`，语种默认 `英文`
+- 中文电商 → `posterType=6`，语种默认 `中文简体`
 
 #### aspectRatio（图片比例）
 - 正方形：`1:1`
@@ -220,15 +233,15 @@ secretKey: 用户提供的API密钥
 
 #### modelEdition（模型类型）
 - `2`：Flyelep 2.0（`posterType=5` 时为 gemini-2.5，`posterType=6` 时为 doubao-seedream）
-- `3`：Flyelep 3.0（gemini-3.1），不传时的默认值
-- `9`：Flyelep Image 2
-- 用户未指定模型时不传此字段即可，服务端按 `3` 处理
+- `3`：Flyelep 3.0（gemini-3.1），服务端在不传此字段时的兜底值
+- `9`：Flyelep Image 2，**本技能的默认模型**
+- 用户未指定模型时一律显式传 `"modelEdition": 9`，不要省略该字段——省略会被服务端按 `3` 处理，与本技能的默认不一致
 
 #### channel（通道）
 - `promotion`：特惠通道，**本技能的默认通道**，线路更经济，**仅支持 `modelEdition` 为 `3`（Flyelep 3.0）或 `9`（Flyelep Image 2）**
 - `premium`：尊享通道，官方专线，支持全部模型
 
-**默认规则：用户没有指定通道时，一律显式传 `"channel": "promotion"`。** `modelEdition` 不传时默认就是 `3`，正好在特惠通道的支持范围内，两者可以直接组合。
+**默认规则：用户没有指定通道时，一律显式传 `"channel": "promotion"`。** 默认模型 `modelEdition=9`（Flyelep Image 2）在特惠通道的支持范围内，两者可以直接组合。
 
 只有这两种情况才传 `premium`：
 
@@ -321,7 +334,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
   "platformType": "Amazon",
   "languageType": "英文",
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥"
@@ -330,7 +343,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -345,7 +358,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这个蓝牙耳机生成一张白底产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -404,7 +417,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "platformType": "Amazon",
   "languageType": "英文",
   "detailPictureNumber": 5,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥",
@@ -415,7 +428,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -430,7 +443,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"根据上传的图片生成对应的产品图","generateType":200,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":5,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -487,7 +500,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "platformType": "淘宝",
   "languageType": "中文简体",
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥",
@@ -497,7 +510,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -512,7 +525,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" --max-time 120 --data-binary '{"query":"为这款智能手表生成一张电商主图，突出科技感","generateType":100,"posterType":6,"platformType":"淘宝","languageType":"中文简体","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -571,7 +584,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "generateType": 101,
   "posterType": 5,
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "secretKey": "你的密钥",
   "aspectRatio": "1:1"
@@ -580,7 +593,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":9,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -595,7 +608,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generateAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","generateType":101,"posterType":5,"detailPictureNumber":1,"modelEdition":9,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 #### 步骤 2：查询任务结果
@@ -652,7 +665,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
   "platformType": "Amazon",
   "languageType": "英文",
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "needText": true,
   "secretKey": "你的密钥"
@@ -661,7 +674,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求（`--max-time 960` 留出比服务端 900 秒更长的余量）：
@@ -676,7 +689,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":3,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/generate" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"为这个蓝牙耳机生成一张产品主图","generateType":100,"posterType":5,"platformType":"Amazon","languageType":"英文","detailPictureNumber":1,"modelEdition":9,"channel":"promotion","needText":true,"secretKey":"你的密钥"}'
 ```
 
 处理结果：把 `data` 按 `;` 拆分，取出以 `http` 开头的片段作为图片 URL 展示给用户。
@@ -695,7 +708,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
   "query": "生成一张蓝牙耳机白底产品主图，产品居中，背景纯白",
   "posterType": 5,
   "detailPictureNumber": 1,
-  "modelEdition": 3,
+  "modelEdition": 9,
   "channel": "promotion",
   "secretKey": "你的密钥",
   "aspectRatio": "1:1"
@@ -704,7 +717,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/genera
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":9,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -719,7 +732,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteBgMainImgGen" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":3,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteBgMainImgGen" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 960 --data-binary '{"query":"生成一张蓝牙耳机白底产品主图，产品居中，背景纯白","posterType":5,"detailPictureNumber":1,"modelEdition":9,"channel":"promotion","secretKey":"你的密钥","aspectRatio":"1:1"}'
 ```
 
 ## 常见错误及解决方案
@@ -742,9 +755,9 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/whiteB
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的生成需求并写入 `query`
-3. 确定目标平台 `platformType`、语言 `languageType` 和海报类型 `posterType`
+3. 确定目标平台 `platformType`，再按「平台联动规则」推导 `posterType` 与 `languageType`：中文平台（淘宝、拼多多、京东、1688、小红书等）→ `posterType=6` + `languageType=中文简体`；跨境平台（Amazon、Temu、Shopee、TikTok Shop 等）→ `posterType=5` + `languageType=英文`。用户显式指定语种时以用户为准
 4. 选择 `generateType`：100=产品单图，101=白底主图，200=产品详情图
-5. 设置参数：`detailPictureNumber`、`modelEdition`、`needText`、`aspectRatio` 等
+5. 设置参数：`detailPictureNumber`、`needText`、`aspectRatio` 等；`modelEdition` 用户未指定时显式传 `9`（Flyelep Image 2）
 6. 设置通道 `channel`：默认传 `promotion`（特惠通道）；用户要求尊享通道或需要 `modelEdition=2` 时才传 `premium`
 7. 如用户提供参考图，收集图片 URL 写入 `fileUrlList`（本地文件先按「本地文件上传」章节换取公网直链）
 8. 在请求头中传入 `secretKey`
