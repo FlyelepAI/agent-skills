@@ -14,7 +14,9 @@ description: >-
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration`
 - **Content-Type**: `application/json`
 - **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
-- **超时时间**: 建议 60-120 秒
+- **超时时间**: 同步阻塞接口，文案生成完才返回，通常几十秒、最长约 5 分钟，请把超时设为 300 秒以上
+- **计费**: 每个账号每天前 10 次免费，超出后每次消耗 2 积分；只有成功生成文案才计次和扣积分，失败不扣
+- **并发**: 同一账号请串行调用，并发请求可能返回「操作过于频繁」
 
 请求头示例：
 
@@ -29,9 +31,11 @@ secretKey: 用户提供的API密钥
 
 ```json
 {
-  "query": "用户需求描述，最多1000个字符",
+  "query": "商品或创意描述",
   "fileUrlList": ["https://example.com/img1.png", "https://example.com/img2.png"],
-  "generateType": "image"
+  "generateType": "image",
+  "platformType": "Amazon",
+  "languageType": "英文"
 }
 ```
 
@@ -52,10 +56,10 @@ secretKey: 用户提供的API密钥
 }
 ```
 - `code=200` 表示调用成功
-- `data.options` 为 AI 生成的多个创意文案选项数组
+- `data.options` 为 AI 生成的多个创意文案选项数组，每个元素是一段多行纯文本（已去除 HTML 标签），末尾可能附带来源说明
 - 将所有选项展示给用户供其选择
 
-失败：
+失败（描述太模糊、含违规内容、服务暂不可用等，HTTP 状态码仍是 200，原因在 `msg` 里，按提示调整后重试）：
 ```json
 {
   "code": 500,
@@ -71,24 +75,30 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| query | - | 用户需求描述，最多1000个字符长度 |
+| query | - | 商品或创意描述，不能为空，建议不超过1000个字符 |
 
 ### 可选参数
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| fileUrlList | - | 文件URL地址数组，最多上传6张，建议单张图片大小在10MB以内 |
-| generateType | - | 生成类型：`image`或空表示图片生成，`video`表示视频生成 |
+| fileUrlList | - | 参考图片URL数组（需公网可访问），最多6张，建议单张图片大小在10MB以内 |
+| generateType | - | 文案类型：传 `video` 生成视频文案，不传或其它值生成图片文案 |
+| platformType | Amazon | 目标电商平台，如 `Amazon`、`Temu`、`Shopee`、`TikTok Shop`、`eBay` |
+| languageType | 英文 | 目标语种的中文名称，如 `英文`、`德语`、`法语`、`西班牙语` |
 
 ### 参数映射规则
 
 #### generateType（生成类型）
-- `image` 或不传：图片生成场景
-- `video`：视频生成场景
+- `video`：视频文案
+- 不传或其它值（如 `image`）：图片文案
+
+#### platformType / languageType（平台与语种）
+- 文案会按目标平台的风格、目标语种撰写；用户没指定时不传，按默认 `Amazon`、`英文` 处理
+- `languageType` 用语种的中文名称（如 `英文`、`日语`），不要传数字编号
 
 #### fileUrlList（参考文件）
 - 数组格式，支持多个URL
-- 最多6个文件
+- 最多6个文件，超过报「文件URL列表最多支持 6 张图片」
 - 用于提供参考图片帮助AI生成更精准的文案
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
@@ -110,15 +120,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -163,7 +173,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
 
 步骤 2：执行请求：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -173,7 +183,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"钓鱼竿"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary '{"query":"钓鱼竿"}'
 ```
 
 ### 示例 2：带参考图的文案优化（图片场景）
@@ -189,18 +199,20 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 {
   "query": "为这款蓝牙耳机生成电商文案",
   "fileUrlList": ["https://example.com/product1.png", "https://example.com/product2.png"],
-  "generateType": "image"
+  "generateType": "image",
+  "platformType": "Amazon",
+  "languageType": "英文"
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款蓝牙耳机生成电商文案","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"generateType":"image"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"query":"为这款蓝牙耳机生成电商文案","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"generateType":"image","platformType":"Amazon","languageType":"英文"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -210,7 +222,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"为这款蓝牙耳机生成电商文案","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"generateType":"image"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary '{"query":"为这款蓝牙耳机生成电商文案","fileUrlList":["https://example.com/product1.png","https://example.com/product2.png"],"generateType":"image","platformType":"Amazon","languageType":"英文"}'
 ```
 
 ### 示例 3：视频场景文案生成
@@ -234,7 +246,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 
 步骤 2：执行请求：
 ```bash
-curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary @payload_temp.json
+curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary @payload_temp.json
 ```
 
 步骤 3：清理临时文件：
@@ -244,7 +256,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"query":"为这款智能手表生成短视频脚本文案","generateType":"video"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assistedGeneration" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 330 --data-binary '{"query":"为这款智能手表生成短视频脚本文案","generateType":"video"}'
 ```
 
 ## 常见错误及解决方案
@@ -253,9 +265,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| query 超过1000字符 | 缩短 query 内容 |
-| 服务繁忙（9999错误码） | 稍后重试 |
-| fileUrlList 文件过多 | 最多上传6个文件 |
+| `用户输入不能为空` | `query` 必传 |
+| query 过长 | 缩短 query 内容，建议不超过1000字符 |
+| 服务繁忙（9999错误码） / `AI 帮写服务暂不可用，请稍后重试` | 稍后重试 |
+| `操作过于频繁` | 同一账号改为串行调用，等上一次返回后再发 |
+| `msg` 为内容识别提示 / 内容安全规范检测提醒 / `AI 帮写未生成任何内容` | 描述太模糊或含违规内容，按 `msg` 提示调整描述后重试 |
+| 请求超时 | 接口最长约 5 分钟才返回，把超时调到 300 秒以上 |
+| `文件URL列表最多支持 6 张图片` | 最多上传6个文件 |
 | 单张图片超过10MB | 压缩图片大小 |
 
 ## 执行流程
@@ -263,8 +279,8 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/assist
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的基础描述并写入 `query`
 3. 如有参考图片，收集图片 URL 写入 `fileUrlList`（本地文件先按「本地文件上传」章节换取公网直链）
-4. 根据场景选择 `generateType`：`image`（图片场景）或 `video`（视频场景）
-5. 在请求头中传入 `secretKey`，调用接口
+4. 根据场景选择 `generateType`：`image`（图片场景）或 `video`（视频场景）；用户指定了平台或语种时填 `platformType`、`languageType`
+5. 在请求头中传入 `secretKey`，调用接口（超时设 300 秒以上，同一账号串行调用）
 6. 将返回的 `data.options` 中所有创意文案选项展示给用户
 
 **提示词处理：**
