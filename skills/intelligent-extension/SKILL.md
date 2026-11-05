@@ -15,7 +15,7 @@ description: >-
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/intelligentExtension`
 - **Content-Type**: `application/json`
 - **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
-- **超时时间**: 建议 120-300 秒（批量图片处理可能耗时更长）
+- **超时时间**: 建议 300 秒以上（同步返回，批量图片处理耗时更长）
 
 请求头示例：
 
@@ -43,17 +43,25 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
+  "msg": null,
   "data": [
-    "https://example.com/result1.jpg",
-    "https://example.com/result2.jpg"
-  ]
+    "https://example.com/result1.png",
+    "https://example.com/result2.png"
+  ],
+  "result": {
+    "fileUrlList": [
+      "https://example.com/result1.png",
+      "https://example.com/result2.png"
+    ],
+    "taskId": "2103021460300001"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为延展后的图片 URL 数组，与 `imgUrlList` 的输入顺序一致
+- `code=200` 表示调用成功；业务失败时 HTTP 状态码仍是 200，`code` 非 200，原因在 `msg` 里
+- **优先读取 `result.fileUrlList`**：延展后的图片 URL 数组，按 `imgUrlList` 的输入顺序排列
+- `result.taskId`：本次请求的生图主任务 ID，可用 `/poster/queryTaskResult` 查询任务明细；按字符串保存，不要做数值运算
+- `data`：兼容旧调用方保留，本接口为图片 URL 数组，与 `result.fileUrlList` 内容一致
 - 返回结果应逐个展示给用户，不要回读图片内容
 
 ## 参数说明
@@ -64,19 +72,21 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| imgUrlList | - | 源图片 URL 列表，支持批量传入多张图片 |
+| imgUrlList | - | 源图片 URL 数组，1~20 张，单张不超过 10MB |
 | ratio | - | 目标延展比例 |
 
 ### 可选参数
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| modelType | `"0"` | 模型类型，字符串：`"0"`=gemini-2.5，`"2"`=gemini-3.1，`"9"`=Flyelep Image 2 |
+| modelType | `"9"` | 模型类型，字符串：`"9"`=Flyelep Image 2（默认），`"2"`=Nano Banana 2，`"0"`=Nano Banana |
 
 ### 参数映射规则
 
 **imgUrlList**：
-- 接口要求传字符串数组，每个元素为一张图片 URL
+- 接口要求传字符串数组，每个元素为一张图片 URL；字段名是 `imgUrlList`，不是 `imageUrlList`
+- 单次 1~20 张，超过 20 张需分批调用
+- 单张图片不超过 10MB，超过时服务端直接报错「图片大小不能超过10MB，请压缩后重试」
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
 - 保留用户原始图片顺序，不要擅自重排 `imgUrlList`
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
@@ -104,9 +114,13 @@ secretKey: 用户提供的API密钥
 如果上下文不足以安全推断，先向用户确认目标比例。
 
 **modelType**：
-- 该字段是**字符串**，不是数字，例如 `"0"`
-- 不传时服务端按 `"0"`（gemini-2.5）处理，计费也按该档
-- 不要显式传 `null`，会导致解析失败；用户没有指定模型时直接省略该字段
+- 该字段是**字符串**，不是数字，例如 `"9"`
+- 只传 `"9"`、`"2"`、`"0"` 三个值之一；不传或传空串时服务端按 `"9"`（Flyelep Image 2）处理
+- 用户没有指定模型时直接省略该字段
+
+**计费**：
+- 按提交的图片张数计费，与所选模型无关
+- 只要有一张延展成功就按提交张数整单扣费；全部失败时报错、不扣费
 
 ## 本地文件上传
 
@@ -121,15 +135,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -237,17 +251,20 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入密钥 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| `imgUrlList` 为空 | 至少传入一张待处理图片 URL |
+| `图片列表不能为空` | `imgUrlList` 未传或为空数组（注意字段名是 `imgUrlList`），至少传入一张图片 URL |
+| `单次最多支持批量处理20张图片` | 超过 20 张，拆成多批调用 |
+| `图片大小不能超过10MB，请压缩后重试` | 源图超过 10MB，压缩后重新上传 |
 | 比例不支持 | `ratio` 只能使用接口支持的固定枚举值 |
-| 处理超时 | 批量图片较多或源图较大时可适当增大超时时间 |
+| 积分不足 | 账户算力不足，充值后重试 |
+| 处理超时 | 批量图片较多或源图较大时可适当增大超时时间（建议 300 秒以上） |
 | 返回数组数量异常 | 先核对源图 URL 是否可访问，再重试请求 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集用户提供的图片 URL 列表（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
-3. 确定目标比例 `ratio`
+2. 收集用户提供的图片 URL 列表（1~20 张；如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
+3. 确定目标比例 `ratio`；用户指定模型时再传 `modelType`
 4. 在请求头中传入 `secretKey`，调用接口
-5. 按输入顺序展示返回的图片 URL
+5. 读取 `result.fileUrlList`（缺失时回退 `data` 数组），按输入顺序展示返回的图片 URL，并记录 `result.taskId` 备查
 
 该接口不接收自然语言提示词，不需要构造额外文案。保留用户原始图片顺序，不要擅自重排 `imgUrlList`。

@@ -41,14 +41,18 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/product_replaced.jpg"
+  "data": "https://example.com/product_replaced.jpg",
+  "result": {
+    "fileUrlList": ["https://example.com/product_replaced.jpg"],
+    "taskId": "2103029456521xxxx"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为商品替换后的图片 URL
+- `code=200` 表示调用成功；失败时 `code` 非 200，原因在 `msg` 里（成功时 `msg` 通常不返回）
+- `result.fileUrlList`：替换结果图片 URL 数组，**优先读取这个字段**（单张也是长度为 1 的数组）
+- `result.taskId`：本次生图的主任务 ID（字符串），可用 `/poster/queryTaskResult` 查询任务明细
+- `data`：兼容旧版的字段，值与 `fileUrlList` 一致，是单个 URL 字符串（多张时英文逗号分隔）；新接入请读 `result.fileUrlList`
 
 返回结果应直接展示给用户，不要回读图片内容。
 
@@ -60,7 +64,7 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| sourceUrl | - | 原图链接，包含原始商品的图片 |
+| sourceUrl | - | 原图链接，包含原始商品的场景图，只传 1 张 |
 | replaceImageUrl | - | 目标商品图链接，最多 3 张，多张用英文逗号分隔 |
 | textPrompt | - | 用户提示词 |
 | modelType | 9 | 模型类型：当前仅支持传 `9`（Flyelep Image 2） |
@@ -71,10 +75,12 @@ secretKey: 用户提供的API密钥
 - 传入待替换商品的原图公网 URL
 - 必须是图片直链，不要传网页地址
 - 原图中应清楚包含待替换商品和原背景环境
+- 只传 1 张原图，不要用逗号拼接多张；输出比例按原图宽高自动匹配
+- 不传或传空会报「原图URL不能为空」
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **replaceImageUrl**：
-- 用于提供目标商品图
+- 用于提供目标商品图，必传（接口不会拦截空值，但不传时模型拿不到目标商品，结果不可控）
 - 最多 3 张，多张用英文逗号 `,` 拼接；超过 3 张接口报「产品替换最多只能上传3张图片」
 - 同一商品的多角度图一起传，有助于模型还原商品细节
 - 当用户明确说"把原商品换成另一件商品"时，优先传入该字段
@@ -87,7 +93,9 @@ secretKey: 用户提供的API密钥
 
 **modelType**：
 - 当前接口仅支持 `9`（Flyelep Image 2），必传
-- 传其他值会报「无效的模型类型」
+- 不传或传其他值会报「modelType 传入非法值，当前接口仅支持 9(Flyelep Image 2)」
+
+**计费**：生成成功后才扣算力，每次调用按 1 张计费；失败不扣。
 
 推荐写法示例：
 
@@ -110,15 +118,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -187,10 +195,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
+| `原图URL不能为空` | 漏传 `sourceUrl` 或传了空串 |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `replaceImageUrl` 无法访问 | 目标商品图 URL 无效、不可公开访问，或链接格式不正确 |
-| `无效的模型类型` | `modelType` 不在支持范围，当前仅支持 `9` |
+| `modelType 传入非法值，当前接口仅支持 9(Flyelep Image 2)` | `modelType` 漏传或不是 `9`，固定传 `9` |
 | `产品替换最多只能上传3张图片` | `replaceImageUrl` 传了超过 3 张，删减后重试 |
+| `积分不足，请充值或联系管理员` 等算力不足提示 | 账户算力不够，充值后重试 |
+| `…处理失败` | 生成失败（不扣算力），可换更清晰的图或调整提示词后重试 |
 | 替换结果不像目标商品 | 目标商品图不够清晰或角度不足，可增加参考图（最多 3 张）并补充 `textPrompt` |
 | 商品替换后背景不协调 | 提示词未强调保留原背景和光影，可在 `textPrompt` 中补充说明 |
 | 请求超时 | 原图较大、参考商品图较多或生成复杂时，可适当增大超时时间 |
@@ -201,7 +212,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 2. 收集原图 URL 和目标商品图 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 与用户确认替换需求，构造 `textPrompt`，`modelType` 固定填 `9`
 4. 在请求头中传入 `secretKey`，调用接口
-5. 将返回的商品替换结果图片 URL 直接展示给用户
+5. 读取 `result.fileUrlList` 中的结果图片 URL 直接展示给用户（旧字段 `data` 仅作兼容）
 
 该接口支持 `textPrompt`，但在商品替换场景下，目标商品图通常比纯文字更关键。执行时应遵循：
 

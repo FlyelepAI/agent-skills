@@ -41,14 +41,22 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/redrawn.jpg"
+  "msg": null,
+  "data": "https://example.com/redrawn.png",
+  "result": {
+    "fileUrlList": [
+      "https://example.com/redrawn.png"
+    ],
+    "taskId": "2103026232400001"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为重绘后的图片 URL
+- `code=200` 表示调用成功；业务失败时 HTTP 状态码仍是 200，`code` 非 200，原因在 `msg` 里
+- **优先读取 `result.fileUrlList`**：重绘后的图片 URL 数组，每次调用只处理 1 张，数组长度为 1
+- `result.taskId`：本次请求的生图主任务 ID，可用 `/poster/queryTaskResult` 查询明细；按字符串保存，不要做数值运算
+- `data`：兼容旧调用方保留，为重绘后的图片 URL 字符串，与 `result.fileUrlList[0]` 一致
+- 输出图片比例与原图保持一致
 - 返回结果应直接展示给用户，不要回读图片内容
 
 ## 参数说明
@@ -67,9 +75,8 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | replaceImageUrl | - | 参考替换图片链接 |
-| maskDataUrl | - | 掩码图链接，用于限定重绘区域 |
-| modelType | `"0"` | 模型类型，字符串：`"0"`=gemini-2.5，`"2"`=gemini-3.1，`"9"`=Flyelep Image 2 |
-| languageType | - | 语言类型，用于约束重绘文案的语种 |
+| maskDataUrl | - | 蒙版图链接，白色区域为重绘区域；不传时根据描述自动判断区域 |
+| modelType | `"0"` | 模型类型，字符串：`"0"`=Nano Banana（默认），`"2"`=Nano Banana 2，`"9"`=Flyelep Image 2；不同模型算力消耗不同 |
 
 ### 参数映射规则
 
@@ -87,7 +94,9 @@ secretKey: 用户提供的API密钥
 
 - `将背景替换为纯白背景，保留商品主体和阴影`
 - `将杯子上的图案改为蓝色几何纹理，保留杯身材质`
-- `把右上角的文字替换为英文促销文案，整体风格保持简洁`
+- `把左侧杯子换成红色玻璃杯`
+
+> 如果用户要精确修改图中已有文字（改字、换文案），应改用「编辑文字」接口，本接口不适合逐字替换。
 
 **replaceImageUrl**：
 - 当用户提供明确的参考替换图时再传入
@@ -96,16 +105,20 @@ secretKey: 用户提供的API密钥
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **maskDataUrl**：
-- 掩码图链接，白色区域表示要重绘的部分
+- 蒙版图链接，白色区域表示要重绘的部分
 - 不传时由模型依据 `textPrompt` 自行判断重绘范围，因此提示词要写清"改哪里"
-- 只有用户已经有现成掩码图时才需要传，agent 不要自己构造掩码
+- 只有用户已经有现成蒙版图时才需要传，agent 不要自己构造蒙版
 
 **modelType**：
-- 该字段是**字符串**，不是数字，例如 `"0"`
-- `"0"`：gemini-2.5（默认）
-- `"2"`：gemini-3.1，按 3.1 档计费
-- `"9"`：Flyelep Image 2，计费按 3.1 档处理，实际模型由工作流路由
-- 不传时服务端按 `"0"` 处理；不要显式传 `null`，会导致解析失败
+- 该字段是**字符串**，不是数字，例如 `"2"`
+- `"0"`：Nano Banana（默认，基础档计费）
+- `"2"`：Nano Banana 2，按高档计费
+- `"9"`：Flyelep Image 2，与 `"2"` 同档计费，实际模型由工作流路由
+- 只传上述三个值之一；用户没有指定模型时直接省略该字段，服务端按 `"0"` 处理
+- 不要显式传 `null` 或空串，会导致解析失败
+
+**计费**：
+- 每次调用处理 1 张，成功出图后按所选模型档位扣一次费；失败不扣费
 
 ## 本地文件上传
 
@@ -120,15 +133,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -235,7 +248,9 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
 | `textPrompt` 过于模糊 | 提示词没有说明要修改的区域或目标效果，应补充“改哪里、改成什么” |
 | `replaceImageUrl` 无法访问 | 参考图 URL 无效或不可公开访问，去掉该字段或更换可访问链接 |
-| 传 `"modelType": null` 后报错 | 该字段为字符串且不接受 null，要么不传，要么传 `"0"` |
+| 传 `"modelType": null` 或空串后报错 | 该字段为字符串且不接受 null/空串，要么不传，要么传 `"0"`/`"2"`/`"9"` |
+| `局部重绘失败，未获取到识别结果` / `局部重绘异常,请重试` | 工作流未产出结果，未扣费，可调整提示词或稍后重试 |
+| 积分不足 | 账户算力不足，充值后重试 |
 | 重绘结果偏差较大 | 提示词不够具体，可补充材质、颜色、构图、保留元素等约束 |
 | 请求超时 | 源图较大或处理复杂时，可适当增大超时时间 |
 
@@ -247,6 +262,6 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 4. 明确修改项：背景、局部文案、某个物体、某种颜色或纹理，整理为 `textPrompt`
 5. 有参考图时再传 `replaceImageUrl`（同样需为公网链接，本地文件先按「本地文件上传」章节换取公网直链）
 6. 若用户只说"帮我改一下图"，应先补足最少必要信息，再调用接口
-7. 在请求头中传入 `secretKey`，调用接口并返回重绘后的图片 URL
+7. 在请求头中传入 `secretKey`，调用接口；读取 `result.fileUrlList[0]`（缺失时回退 `data`）作为重绘后的图片 URL 返回，并记录 `result.taskId` 备查
 
 该接口接收自然语言提示词，`textPrompt` 的质量会直接影响结果。当用户目标是“小范围替换”时，提示词应避免写成整张图重做；当用户目标是“换背景”时，应在 `textPrompt` 中强调保留主体不变。

@@ -30,7 +30,7 @@ secretKey: 用户提供的API密钥
 
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg",
+  "imageUrlList": ["https://example.com/img1.jpg", "https://example.com/img2.jpg"],
   "enhanceStrength": "light"
 }
 ```
@@ -40,16 +40,20 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/clear1.jpg,https://example.com/clear2.jpg"
+  "data": "https://example.com/clear1.jpg,https://example.com/clear2.jpg",
+  "result": {
+    "fileUrlList": ["https://example.com/clear1.jpg", "https://example.com/clear2.jpg"],
+    "taskId": "210438182055381xxxx"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为超清后的图片地址
-- 多张图片时，`data` 中多个 URL 以英文逗号 `,` 分隔
-- 返回结果应按逗号拆分后逐个展示给用户，不要回读图片内容
+- `code=200` 表示调用成功；失败时 `code` 非 200，原因在 `msg` 里（成功时 `msg` 通常不返回）
+- `result.fileUrlList`：超清结果图片 URL 数组，按输入顺序排列，**优先读取这个字段**
+- `result.taskId`：本次任务的主任务 ID（字符串），可用 `/poster/queryTaskResult` 查询每张图的明细
+- `data`：兼容旧版的字段，值与 `fileUrlList` 一致，单张为 URL 字符串，多张为英文逗号 `,` 分隔的字符串；新接入请读 `result.fileUrlList`
+- 批量时部分图片失败，只返回成功的结果，按成功张数计费；全部失败时 `code` 非 200，`msg` 为第一张失败的原因
+- 返回结果逐个展示给用户，不要回读图片内容
 
 ## 参数说明
 
@@ -59,24 +63,36 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| imgUrls | - | 图片链接字符串，单张直接传，多张用英文逗号分隔 |
-| enhanceStrength | - | 增强强度：`light`、`standard`、`strong`。**必须传**，缺失时接口会直接返回空结果 |
+| imageUrlList | - | 图片 URL 数组，单张也传数组；建议单次不超过 6 张 |
+| enhanceStrength | light | 增强强度：`light`、`standard`、`strong`，不传按 `light` |
+
+### 可选参数
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| physicalWidthMm | - | 印刷成品物理宽度（毫米），与 `physicalHeightMm` 都填且大于 0 时按 300DPI 输出印刷级尺寸 |
+| physicalHeightMm | - | 印刷成品物理高度（毫米），需与 `physicalWidthMm` 同时传 |
 
 ### 参数映射规则
 
-**imgUrls**：
-- 接口要求传字符串，不是数组
-- 单张图片时直接传一个 URL 字符串
-- 多张图片时，用英文逗号 `,` 按顺序拼接
+**imageUrlList**：
+- 接口要求传 JSON 字符串数组，单张图片也写成 `["url"]`
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
-- 也可以改用 `imageUrl` 字段传单张图片，两者二选一；同时传时以 `imgUrls` 为准
+- 多张图片按顺序处理，结果也按输入顺序返回；张数越多耗时越长，建议单次不超过 6 张，更多时分批调用
+- 旧字段 `imgUrls`（英文逗号分隔的字符串）和 `imageUrl`（单张）仍兼容，优先级 `imageUrlList` > `imgUrls` > `imageUrl`；新接入统一用 `imageUrlList`
+- 都不传会报「图片链接不能为空」
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **enhanceStrength**：
 - `light`：轻度增强，按基础单价计费
 - `standard`：标准增强，按 2 倍单价计费
 - `strong`：强力增强，按 3 倍单价计费
-- 该字段不传时接口不会报错，而是直接返回空结果，因此每次调用都要显式传值
+- 强度越高效果越明显，结果图分辨率也越高（底层超分倍数 light 约 2 倍、standard 约 4 倍、strong 约 8 倍）
+- 不传或传空时按 `light` 处理并计费（单张、多张一致）；大小写不敏感，传以上三个之外的值会报错 `enhanceStrength 仅支持 light / standard / strong`
+
+**physicalWidthMm / physicalHeightMm**：
+- 仅在用户明确要求印刷尺寸时传，单位毫米，两个字段都要传且大于 0
+- 不传时输出普通超清图
 
 推荐默认规则：
 
@@ -86,15 +102,14 @@ secretKey: 用户提供的API密钥
 
 ## 图片规格限制
 
-文档明确要求源图满足以下限制：
+源图需满足以下限制：
 
-- 格式仅支持：`JPG`、`PNG`、`BMP`
-- 最短边不低于 `10px`
-- 最长边不超过 `5000px`
-- 长宽比不超过 `4:1`
-- 文件大小不超过 `8MB`
+- 长边不超过 `2048px`
+- 短边不低于 `256px`
+- 文件大小不超过 `10MB`
+- 建议使用 `JPG`、`PNG`
 
-如果任一条件不满足，接口可能报错或处理失败。
+不满足时该张图片处理失败，`msg` 会给出具体原因（如「图片尺寸超出 AIGC 超分范围」「图片尺寸过小」「图片大小超出 AIGC 超分范围」）；超长边的图片可先压缩到 2048px 以内再调用。
 
 ## 本地文件上传
 
@@ -109,15 +124,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -153,14 +168,14 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg",
+  "imageUrlList": ["https://example.com/img1.jpg"],
   "enhanceStrength": "standard"
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg","enhanceStrength":"standard"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg"],"enhanceStrength":"standard"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -175,7 +190,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/imageClarityEnhance" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg","enhanceStrength":"standard"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/imageClarityEnhance" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg"],"enhanceStrength":"standard"}'
 ```
 
 ### 示例 2：批量图片轻度超清
@@ -189,14 +204,14 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg",
+  "imageUrlList": ["https://example.com/img1.jpg", "https://example.com/img2.jpg"],
   "enhanceStrength": "light"
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","enhanceStrength":"light"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"],"enhanceStrength":"light"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -211,7 +226,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/imageClarityEnhance" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg","enhanceStrength":"light"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/imageClarityEnhance" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"],"enhanceStrength":"light"}'
 ```
 
 ## 常见错误及解决方案
@@ -220,21 +235,22 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| `imgUrls` 格式错误 | 该字段必须是字符串，多张图用英文逗号分隔，不是 JSON 数组 |
-| 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
-| `enhanceStrength` 非法 | 只支持 `light`、`standard`、`strong` |
-| 返回 `data` 为空字符串 | 没传 `enhanceStrength`，补上该字段后重试 |
-| 图片规格不符合要求 | 检查格式、尺寸、长宽比和文件大小是否满足文档限制 |
-| 请求超时 | 批量图片较多或增强强度较高时，可适当增大超时时间 |
+| `图片链接不能为空` | 没传 `imageUrlList`，或数组为空 |
+| `imageUrlList` 格式错误 | 该字段必须是 JSON 字符串数组，不是逗号拼接的字符串 |
+| 图片 URL 无法访问 / `图片下载失败…` | 传入的链接不是公网直链、已过期，或源站限制访问 |
+| `enhanceStrength 仅支持 light / standard / strong` | 强度传了非法值，改为三个可选值之一 |
+| `图片尺寸超出 AIGC 超分范围` / `图片尺寸过小` / `图片大小超出 AIGC 超分范围` | 源图不满足「图片规格限制」，压缩或换图后重试 |
+| `积分不足，请充值或联系管理员` 等算力不足提示 | 账户算力不够（按张数 × 强度倍数预估），充值或降低强度后重试 |
+| 请求超时 | 多张图片按顺序处理，张数多或强度高时耗时长，可增大超时时间或分批调用 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集一张或多张图片 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
-3. 将多张 URL 用英文逗号拼接为 `imgUrls`
+3. 将 URL 按顺序放入 `imageUrlList` 数组（单张也用数组）
 4. 根据用户意图选择 `enhanceStrength`
 5. 确认源图尽量满足规格限制
 6. 在请求头中传入 `secretKey`，调用接口
-7. 将返回的结果按逗号拆分后逐个展示
+7. 读取 `result.fileUrlList`，将结果图片逐个展示（旧字段 `data` 仅作兼容）
 
 该接口不接收自然语言提示词，不需要构造额外文案。当用户只是说“帮我变清晰一点”时，用本技能并传 `light`；当用户明确要求“放大尺寸、提分辨率”时，改用无损放大（image-enlarge）技能，那里的 `scalingRatio` 是放大倍数。

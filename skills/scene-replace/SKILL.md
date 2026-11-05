@@ -41,14 +41,18 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/scene_replaced.jpg"
+  "data": "https://example.com/scene_replaced.jpg",
+  "result": {
+    "fileUrlList": ["https://example.com/scene_replaced.jpg"],
+    "taskId": "2103030060425xxxx"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为场景替换后的图片 URL
+- `code=200` 表示调用成功；失败时 `code` 非 200，原因在 `msg` 里（成功时 `msg` 通常不返回）
+- `result.fileUrlList`：替换结果图片 URL 数组，**优先读取这个字段**（单张也是长度为 1 的数组）
+- `result.taskId`：本次生图的主任务 ID（字符串），可用 `/poster/queryTaskResult` 查询任务明细
+- `data`：兼容旧版的字段，值与 `fileUrlList` 一致，是单个 URL 字符串（多张时英文逗号分隔）；新接入请读 `result.fileUrlList`
 
 返回结果应直接展示给用户，不要回读图片内容。
 
@@ -60,21 +64,23 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 类型 | 是否必需 | 默认值 | 说明 |
 |------|------|----------|--------|------|
-| sourceUrl | String | 是 | - | 原图链接 |
+| sourceUrl | String | 是 | - | 商品原图链接，只传 1 张 |
 | modelType | Integer | 是 | 9 | 当前仅支持传 `9`：Flyelep Image 2 |
-| textPrompt | String | 是 | - | 用户提示词，描述目标场景 |
-| replaceImageUrl | String | 否 | - | 场景参考图链接，暂时只支持单图 |
+| textPrompt | String | 是 | - | 用户提示词，描述目标场景（不传时服务端退化为「替换场景」） |
+| replaceImageUrl | String | 否 | - | 场景参考图链接，最多 1 张 |
 
 ### 参数映射规则
 
 **sourceUrl**：
 - 传入待替换场景的原图公网 URL
 - 必须是图片直链，不要传网页地址
+- 只传 1 张原图，不要用逗号拼接多张；输出比例按原图宽高自动匹配
+- 不传或传空会报「原图URL不能为空」
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **modelType**：
 - 当前接口仅支持 `9`（Flyelep Image 2），必传
-- 传其他值会报「无效的模型类型」
+- 不传或传其他值会报「modelType 传入非法值，当前接口仅支持 9(Flyelep Image 2)」
 
 **textPrompt**：
 - 用自然语言描述目标场景，如风格、环境、光线、氛围、陈列方式
@@ -86,6 +92,8 @@ secretKey: 用户提供的API密钥
 - 暂时只支持单图，传入多张（逗号分隔）会被接口拒绝，报「该操作类型最多只能上传1张图片」
 - 不传时仅靠 `textPrompt` 生成目标场景
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
+
+**计费**：生成成功后才扣算力，每次调用按 1 张计费；失败不扣。
 
 > **说明**：场景替换、商品替换、商品换色三个接口共用同一 DTO，由接口内部自动设置 `type` 字段，调用方无需传入 `type`。
 
@@ -102,15 +110,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -179,10 +187,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
+| `原图URL不能为空` | 漏传 `sourceUrl` 或传了空串 |
 | `sourceUrl` 无法访问 | 原图 URL 不是公网直链、已过期，或源站限制访问 |
-| `无效的模型类型` | `modelType` 不在支持范围，当前仅支持 `9` |
+| `modelType 传入非法值，当前接口仅支持 9(Flyelep Image 2)` | `modelType` 漏传或不是 `9`，固定传 `9` |
 | `该操作类型最多只能上传1张图片` | `replaceImageUrl` 传了多张，场景替换只接受 1 张 |
-| `textPrompt` 未传 | 提示词为必传参数，需要描述目标场景 |
+| `textPrompt` 未传 | 接口不报错，但会按默认提示词「替换场景」生成，效果不可控；应始终描述目标场景 |
+| `积分不足，请充值或联系管理员` 等算力不足提示 | 账户算力不够，充值后重试 |
+| `…处理失败` | 生成失败（不扣算力），可换更清晰的图或调整提示词后重试 |
 | 场景效果不理想 | 文字描述过于模糊，可补充风格、光线、空间类型、氛围等信息 |
 | 请求超时 | 原图较大、参考图较多或生成复杂时，可适当增大超时时间 |
 
@@ -192,7 +203,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 2. 收集原图 URL，以及可选的场景参考图 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 与用户确认目标场景需求，构造 `textPrompt`，`modelType` 固定填 `9`
 4. 在请求头中传入 `secretKey`，调用接口
-5. 将返回的场景替换结果图片 URL 直接展示给用户
+5. 读取 `result.fileUrlList` 中的结果图片 URL 直接展示给用户（旧字段 `data` 仅作兼容）
 
 该接口支持通过 `textPrompt` 控制目标场景，因此提示词质量很重要。执行时应遵循：
 

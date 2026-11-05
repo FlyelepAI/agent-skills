@@ -15,7 +15,7 @@ description: >-
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/enlarge`
 - **Content-Type**: `application/json`
 - **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
-- **超时时间**: 建议 120-300 秒
+- **超时时间**: 建议 300 秒以上（同步返回，批量或高倍数放大耗时更长）
 
 请求头示例：
 
@@ -52,16 +52,24 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/enlarged1.jpg,https://example.com/enlarged2.jpg"
+  "msg": null,
+  "data": "https://example.com/enlarged1.png,https://example.com/enlarged2.png",
+  "result": {
+    "fileUrlList": [
+      "https://example.com/enlarged1.png",
+      "https://example.com/enlarged2.png"
+    ],
+    "taskId": "2103025513628001"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为放大后的图片地址
-- 多张图片时，`data` 中多个 URL 以英文逗号 `,` 分隔
-- 返回结果应按逗号拆分后逐个展示给用户，不要回读图片内容
+- `code=200` 表示请求已处理；业务失败时 HTTP 状态码仍是 200，`code` 非 200，原因在 `msg` 里
+- **优先读取 `result.fileUrlList`**：放大后的图片 URL 数组，按输入顺序排列；部分失败时只含成功的图片
+- **`code=200` 时也要检查 `result.fileUrlList` 是否为空**：全部图片放大失败时接口仍返回 `code=200`，但 `fileUrlList` 为空数组、`data` 为空串，表示处理失败（不扣费），可稍后重试
+- `result.taskId`：本次请求的生图主任务 ID，可用 `/poster/queryTaskResult` 查询每张图的明细；按字符串保存，不要做数值运算
+- `data`：兼容旧调用方保留，为英文逗号分隔的 URL 字符串，内容与 `result.fileUrlList` 一致
+- 返回结果应逐个展示给用户，不要回读图片内容
 
 ## 参数说明
 
@@ -71,28 +79,28 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
-| imageUrlList | array | - | 图片链接数组（推荐），与 `imgUrls` 二选一，最多 6 张，建议单张 10MB 以内 |
-| imgUrls | String | - | 图片链接字符串，多张时使用英文逗号分隔，与 `imageUrlList` 二选一，最多 6 张 |
+| imageUrlList | array | - | 图片链接数组（推荐），与 `imgUrls` 二选一，最多 20 张，建议单张 10MB 以内 |
+| imgUrls | String | - | 图片链接字符串，多张时使用英文逗号分隔，与 `imageUrlList` 二选一，最多 20 张 |
 | scalingRatio | Integer | - | 放大倍率：`2`=2 倍，`4`=4 倍，`8`=8 倍 |
 
 ### 参数映射规则
 
 **imageUrlList**（推荐）：
 - JSON 数组，每个元素是一个图片直链
-- 最多 6 张，建议单张图片大小在 10MB 以内
-- 与 `imgUrls` 二选一，两者传其一即可，优先使用本参数
+- 最多 20 张，建议单张图片大小在 10MB 以内
+- 与 `imgUrls` 二选一，两者传其一即可；同时传时以本参数为准
 
 **imgUrls**（兼容写法）：
 - 传字符串，不是数组
 - 单张图片时直接传一个 URL 字符串
-- 多张图片时，用英文逗号 `,` 按顺序拼接，最多 6 张
+- 多张图片时，用英文逗号 `,` 按顺序拼接，最多 20 张
 - 每个链接都应为公网可访问的图片直链，不要传网页地址
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **scalingRatio**：
 - 含义是放大倍率，不是增强强度档位
-- 仅支持 `2`、`4`、`8` 三个取值，超出范围接口直接报错「放大倍数必须是8倍以内」
-- 工作流侧默认按 2 倍无损放大处理
+- 必传，只传 `2`、`4`、`8` 三个取值；不传或超出 1~8 范围时接口直接报错「放大倍数必须是8倍以内」
+- 倍数越高算力消耗越高：按成功放大的张数计费，2 倍 = 1 份、4 倍 = 2 份、8 倍 = 3 份；失败的图片不扣费
 
 推荐默认规则：
 
@@ -115,15 +123,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -230,19 +238,22 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | 图片参数格式错误 | `imageUrlList` 必须是 JSON 数组，`imgUrls` 必须是逗号分隔字符串，两者只传一个 |
-| 图片数量超限 | 单次最多 6 张，超出需分批调用 |
+| `图片URL不能为空` | `imageUrlList` 和 `imgUrls` 都没传或都为空 |
+| `单次最多支持批量处理20张图片` | 单次最多 20 张，超出需分批调用 |
+| `code=200` 但 `result.fileUrlList` 为空 | 全部图片放大失败（未扣费），检查图片可访问性后稍后重试 |
 | 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
-| `放大倍数必须是8倍以内` | `scalingRatio` 取值不合法，只能是 `2`、`4` 或 `8` |
+| `放大倍数必须是8倍以内` | `scalingRatio` 未传或取值不合法，只能是 `2`、`4` 或 `8` |
+| 积分不足 | 账户算力不足，充值后重试（倍数越高消耗越多） |
 | 接口提示图片规格不符合要求 | 换用更规范的图片尺寸或格式后重试 |
 | 请求超时 | 批量图片较多或放大倍数较高时，可适当增大超时时间 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集一张或多张图片 URL（最多 6 张；如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
+2. 收集一张或多张图片 URL（最多 20 张；如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 将 URL 组装为 `imageUrlList` 数组（推荐），或用英文逗号拼接为 `imgUrls`
 4. 根据用户意图确定 `scalingRatio`（放大倍率，仅 `2`/`4`/`8`，未指定时用 `2`）
 5. 在请求头中传入 `secretKey`，调用接口
-6. 将返回的结果按逗号拆分后逐个展示
+6. 读取 `result.fileUrlList`（缺失时把 `data` 按逗号拆分），为空则告知用户处理失败；非空则逐个展示，并记录 `result.taskId` 备查
 
 该接口不接收自然语言提示词，不需要构造额外文案。如果用户只是说“帮我变清晰一点”而没有提尺寸，应改用 AI 超清（image-clarity-enhance）技能；只有明确要“放大、提尺寸、提分辨率”时才用本技能。

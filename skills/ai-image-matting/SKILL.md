@@ -15,7 +15,7 @@ description: >-
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting`
 - **Content-Type**: `application/json`
 - **认证方式**: 在请求头中传入 `secretKey`（密钥需由用户在 Flyelep 开放平台申请：https://www.flyelep.cn/controlboard）
-- **超时时间**: 建议 120-300 秒
+- **超时时间**: 建议 300 秒以上（同步返回，批量处理耗时更长）
 
 请求头示例：
 
@@ -30,6 +30,17 @@ secretKey: 用户提供的API密钥
 
 ```json
 {
+  "imageUrlList": [
+    "https://example.com/img1.jpg",
+    "https://example.com/img2.jpg"
+  ]
+}
+```
+
+也可使用逗号分隔字符串形式（兼容写法，与 `imageUrlList` 二选一）：
+
+```json
+{
   "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg"
 }
 ```
@@ -39,15 +50,23 @@ secretKey: 用户提供的API密钥
 ```json
 {
   "code": 200,
-  "msg": "操作成功",
-  "data": "https://example.com/matted1.png,https://example.com/matted2.png"
+  "msg": null,
+  "data": "https://example.com/matted1.png,https://example.com/matted2.png",
+  "result": {
+    "fileUrlList": [
+      "https://example.com/matted1.png",
+      "https://example.com/matted2.png"
+    ],
+    "taskId": "2103028907696870"
+  }
 }
 ```
 
-- `code=200` 表示调用成功
-- `msg` 为接口返回说明
-- `data` 为抠图后图片地址，多张时以英文逗号 `,` 分隔
-- 返回结果应按逗号拆分后逐个展示给用户，不要回读图片内容
+- `code=200` 表示调用成功；业务失败时 HTTP 状态码仍是 200，`code` 非 200，原因在 `msg` 里
+- **优先读取 `result.fileUrlList`**：抠图结果（透明底 PNG）URL 数组，按输入顺序排列；部分失败时只含成功的图片
+- `result.taskId`：本次请求的生图主任务 ID，可用 `/poster/queryTaskResult` 查询每张图的明细；按字符串保存，不要做数值运算
+- `data`：兼容旧调用方保留，为英文逗号分隔的 URL 字符串，内容与 `result.fileUrlList` 一致
+- 返回结果应逐个展示给用户，不要回读图片内容
 
 ## 参数说明
 
@@ -57,16 +76,29 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| imgUrls | - | 图片链接字符串，多张时使用英文逗号分隔 |
+| imageUrlList | - | 图片链接数组（推荐），最多 20 张 |
+
+### 可选参数（兼容写法）
+
+| 字段 | 默认值 | 说明 |
+|------|--------|------|
+| imgUrls | - | 图片链接字符串，多张时使用英文逗号分隔，最多 20 张；与 `imageUrlList` 二选一 |
+| imageUrl | - | 单张图片链接 |
 
 ### 参数映射规则
 
-**imgUrls**：
-- 接口要求传字符串，不是数组
-- 单张图片直接传 URL 字符串；多张图片用英文逗号 `,` 拼接
-- 也可以改用 `imageUrl` 字段传单张图片，两者二选一；同时传时以 `imgUrls` 为准
+**imageUrlList**（推荐）：
+- JSON 数组，每个元素是一个图片直链，单张也写成数组
+- 单次最多 20 张，超出需分批调用
 - 每个链接都应为公网可访问的图片直链
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
+
+**imgUrls / imageUrl**（兼容写法）：
+- `imgUrls` 传字符串，多张用英文逗号 `,` 拼接；`imageUrl` 只传单张
+- 三个字段只传一个即可；同时传时优先级为 `imageUrlList` > `imgUrls` > `imageUrl`
+
+**计费**：
+- 按成功抠图的张数计费；部分失败只扣成功部分，全部失败报错、不扣费
 
 **结果格式**：
 - 抠图结果通常为透明背景的 `.png` 图片
@@ -85,15 +117,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -129,13 +161,13 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg"
+  "imageUrlList": ["https://example.com/img1.jpg"]
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg"]}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -150,7 +182,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg"]}'
 ```
 
 ### 示例 2：批量图片抠图
@@ -164,13 +196,16 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 方式 A（使用 Write 工具）：
 ```json
 {
-  "imgUrls": "https://example.com/img1.jpg,https://example.com/img2.jpg"
+  "imageUrlList": [
+    "https://example.com/img1.jpg",
+    "https://example.com/img2.jpg"
+  ]
 }
 ```
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg"}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"]}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 步骤 2：执行请求：
@@ -185,7 +220,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"https://example.com/img1.jpg,https://example.com/img2.jpg"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["https://example.com/img1.jpg","https://example.com/img2.jpg"]}'
 ```
 
 ## 常见错误及解决方案
@@ -194,7 +229,11 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| `imgUrls` 格式错误 | 该字段必须是字符串，多张图用英文逗号分隔，不是 JSON 数组 |
+| 图片参数格式错误 | `imageUrlList` 必须是 JSON 数组；`imgUrls` 必须是逗号分隔字符串，不是数组 |
+| `图片URL不能为空` | `imageUrlList`、`imgUrls`、`imageUrl` 都没传或都为空 |
+| `单次最多支持批量处理20张图片` | 单次最多 20 张，超出需分批调用 |
+| `抠图服务异常，请重试` | 所有图片都抠图失败，未扣费，可稍后重试 |
+| 积分不足 | 账户算力不足，充值后重试 |
 | 图片 URL 无法访问 | 传入的链接不是公网直链、已过期，或源站限制访问 |
 | 抠图边缘效果不理想 | 原图主体与背景对比不足、边缘过于复杂，可换更清晰或背景更干净的源图 |
 | 请求超时 | 批量图片较多或源图较大时，可适当增大超时时间 |
@@ -202,9 +241,9 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
-2. 收集一张或多张图片 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
-3. 将多张 URL 用英文逗号拼接为 `imgUrls`
+2. 收集一张或多张图片 URL（最多 20 张；如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
+3. 将 URL 组装为 `imageUrlList` 数组
 4. 在请求头中传入 `secretKey`，调用接口
-5. 将返回的结果按逗号拆分后逐个展示
+5. 读取 `result.fileUrlList`（缺失时把 `data` 按逗号拆分）逐个展示；数量少于输入时说明部分图片失败，并记录 `result.taskId` 备查
 
 > 当用户明确要求"透明底""抠出主体""去掉背景"时，优先使用此技能；如果用户真正想要的是"换背景"而不是"去背景"，则更适合使用场景替换或局部重绘类技能。
