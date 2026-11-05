@@ -1,12 +1,12 @@
 ---
 name: async-free-creation
 description: >-
-  通过 Flyelep 异步自由创作接口调用 Image-2 模型生成产品图或创意图。
-  当用户要求异步自由创作、自由创作、Image-2 自由创作、根据提示词和参考图生成多张图片时使用此技能。
+  通过 Flyelep 异步自由创作接口，根据提示词和可选参考图生成产品图或创意图，可选 Flyelep Image 2 / Image 2.5 / Nano 2.1 模型。
+  当用户要求异步自由创作、自由创作、根据提示词和参考图生成多张图片时使用此技能。
 ---
 # Flyelep 异步自由创作
 
-通过 Flyelep Image-2 自由创作 API 异步生成图片。
+通过 Flyelep 自由创作 API 异步生成图片。
 
 **重要：这是一个 HTTP API 调用技能。必须通过 HTTP POST 请求调用 API 接口，禁止通过浏览器访问 Flyelep 网站。**
 
@@ -33,19 +33,19 @@ secretKey: 用户提供的API密钥
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
 - **Content-Type**: `application/json`
 - **认证方式**: 在请求 Header 中传入 `secretKey`
-- **说明**: 该接口是新版任务查询接口，优先使用；旧接口 `queryResult` 仍可作为兼容备选。
 
 ## 请求 Body
 
 创建任务：
 ```json
 {
-  "query": "生成钢笔的产品图",
-  "apiImgUrlList": [
+  "query": "生成一只猫穿着图片里的衣服",
+  "fileUrlList": [
     "https://example.com/product.png"
   ],
   "detailPictureNumber": 4,
   "aspectRatio": "1:1",
+  "modelEdition": 9,
   "channel": "promotion"
 }
 ```
@@ -65,13 +65,13 @@ secretKey: 用户提供的API密钥
 {
   "code": 200,
   "data": {
-    "agentGenerateTaskId": "2054467932287070209"
+    "agentGenerateTaskId": "2104817205431918593"
   }
 }
 ```
 
 - `code=200` 表示创建任务成功
-- `data.agentGenerateTaskId` 为异步任务 ID
+- `data.agentGenerateTaskId` 为异步任务 ID（字符串）
 - 创建任务后必须继续调用查询结果接口获取最终图片 URL
 
 ### 查询结果响应
@@ -80,20 +80,26 @@ secretKey: 用户提供的API密钥
 {
   "code": 200,
   "data": {
+    "status": 1,
     "taskList": [
       {
         "taskStatus": 2,
         "executeResult": "https://example.com/result1.png"
       },
       {
-        "taskStatus": 1
+        "taskStatus": 1,
+        "executeResult": null
       }
     ]
   }
 }
 ```
 
-#### taskStatus 状态
+#### 状态说明
+
+`data.status` 整体状态：`1` 进行中 / `2` 全部成功 / `3` 全部失败 / `4` 部分成功。**`status` 不为 `1` 时停止轮询。**
+
+`taskList[].taskStatus` 每张图的状态：
 
 | 值 | 含义 |
 |----|------|
@@ -102,7 +108,7 @@ secretKey: 用户提供的API密钥
 | `2` | 生成成功 |
 | `3` | 生成失败 |
 
-当 `taskStatus=2` 时，读取对应项的 `executeResult` 图片 URL 并展示给用户。若仍有 `0` 或 `1`，等待后继续轮询；若出现 `3`，告知用户该任务项生成失败。
+当 `taskStatus=2` 时，读取对应项的 `executeResult` 图片 URL 并展示给用户；`taskStatus=3` 时 `executeResult` 为失败原因，告知用户该张生成失败。
 
 ## 参数说明
 
@@ -113,14 +119,15 @@ secretKey: 用户提供的API密钥
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
 | query | - | 用户生成图片的具体需求描述，最多 1000 个字符 |
-| detailPictureNumber | - | 需要生成的图片数量，支持 `1` 到 `4` |
-| aspectRatio | 随机 | 图片比例；文档标注为必需，但为空时默认随机比例 |
+| detailPictureNumber | 4 | 需要生成的图片数量，`1` 到 `20` |
+| aspectRatio | 随机 | 图片比例；文档标注为必需，为空时随机比例 |
 
 ### 可选参数
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| apiImgUrlList | - | 参考图片 URL 数组，最多 6 张，建议单张图片小于 10MB |
+| fileUrlList | - | 参考图片 URL 数组，最多 6 张，建议单张图片小于 10MB |
+| modelEdition | `9` | 模型：`9` Flyelep Image 2（默认）、`13` Flyelep Image 2.5、`14` Flyelep Nano 2.1 |
 | channel | `promotion` | 特惠通道（`promotion`，默认，未指定时显式传该值）/尊享通道（`premium`） |
 
 ### 参数映射规则
@@ -131,17 +138,16 @@ secretKey: 用户提供的API密钥
 - 如果用户只给产品名，可补充为简洁的产品图生成需求，例如：`生成钢笔的产品图`
 - 最多 1000 个字符，超出时需要压缩描述
 
-#### apiImgUrlList
-- 传入公网可访问的图片直链数组
-- 最多 6 张
-- 字段名是 `apiImgUrlList`，不是 `fileUrlList` 或 `imgUrlList`
+#### fileUrlList
+- 传入公网可访问的图片直链数组，最多 6 张，超出时接口返回 `图片超出 6 张`
+- 旧字段 `apiImgUrlList` 仅为兼容历史调用保留，新调用一律用 `fileUrlList`；两者同传时以 `fileUrlList` 为准
 - 用户未提供参考图时，不传此字段
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 #### detailPictureNumber
-- 支持 `1`、`2`、`3`、`4`
+- 支持 `1` 到 `20`
 - 用户未指定数量时，默认传 `4`
-- 用户要求超过 4 张时，告知该接口单次最多生成 4 张，可分多次调用
+- 用户要求超过 20 张时，告知该接口单次最多生成 20 张，可分多次调用
 
 #### aspectRatio
 支持以下比例：
@@ -156,8 +162,6 @@ secretKey: 用户提供的API密钥
 - `16:9`
 - `21:9`
 
-API 文档标注此参数为必需，但默认为空时接口随机选择比例。
-
 默认规则：
 - 用户明确指定比例时，原样传入
 - 用户未指定比例时，可传空字符串或不传，让接口随机选择
@@ -165,24 +169,26 @@ API 文档标注此参数为必需，但默认为空时接口随机选择比例�
 - 方图优先推断为 `1:1`
 - 竖版优先推断为 `9:16`
 
+#### modelEdition（模型）
+- `9`：Flyelep Image 2，**本技能的默认模型**，用户未指定时显式传入
+- `13`：Flyelep Image 2.5
+- `14`：Flyelep Nano 2.1
+- Flyelep Dream 5 pro、Flyelep Nano 2 已下线，不要再传旧值 `2`、`3`、`4`（`2`、`4` 会被服务端转成 `9`）；传入其它值会报错 `modelEdition 传入非法值`
+
 #### channel（通道）
-- `promotion`：特惠通道，**本技能的默认通道**，线路更经济
+- `promotion`：特惠通道，**本技能的默认通道**，生图 8 算力/张，支持 Image 2、Image 2.5、Nano 2.1
 - `premium`：尊享通道，官方专线，支持全部模型
 
-**默认规则：用户没有指定通道时，一律显式传 `"channel": "promotion"`。** 只在用户明确要求尊享通道，或本次要用的模型不在特惠通道支持范围内时，才传 `premium`。
-
-特惠通道只开放 `modelEdition` 为 `3`（Flyelep Nano 2）和 `9`（Flyelep Image 2）这两个模型，默认模型 `9` 本身就在范围内。**显式传 `promotion` 又搭配特惠通道不支持的模型（如 `modelEdition=2`）时，接口会直接报错拒绝，不会自动降级**，此时通道要跟着改成 `premium`。
-
-> 完全不传 `channel` 时，服务端也是按特惠通道处理，并在模型不支持特惠时自动回落尊享。但显式传值能让通道和计费可预期，因此按上面的规则明确传入，不要依赖服务端兜底。
+**默认规则：用户没有指定通道时，一律显式传 `"channel": "promotion"`。** 只在用户明确要求尊享通道时才传 `premium`。
 
 ## 异步任务流程
 
 > **重要**：本接口为异步接口，必须**先调用主接口获取 `agentGenerateTaskId`，然后调用 `queryTaskResult` 接口轮询任务结果**，不能省略轮询步骤。
 
-1. 调用主接口（`allAroundCreationAsync`）提交任务，从响应中获取 `agentGenerateTaskId`
-2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 5-10 秒查询一次）
-3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
-4. 当 `taskStatus=3` 时，表示生成失败
+1. 调用主接口（`allAroundCreationAsync`）提交任务，从响应中获取 `data.agentGenerateTaskId`
+2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 3~5 秒查询一次）
+3. `data.status=1` 时继续轮询；为 `2`/`3`/`4` 时停止
+4. 取 `taskStatus=2` 的 `executeResult` 作为图片 URL；`taskStatus=3` 表示该张失败
 
 ## 本地文件上传
 
@@ -197,15 +203,15 @@ API 文档标注此参数为必需，但默认为空时接口随机选择比例�
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -244,8 +250,9 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
   "aspectRatio": "1:1",
   "query": "生成钢笔的产品图",
   "detailPictureNumber": 4,
+  "modelEdition": 9,
   "channel": "promotion",
-  "apiImgUrlList": [
+  "fileUrlList": [
     "https://example.com/product.png"
   ]
 }
@@ -253,7 +260,7 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/upload" 
 
 方式 B（无 Write 工具，PowerShell 执行）：
 ```powershell
-[System.IO.File]::WriteAllText("payload_temp.json", '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"channel":"promotion","apiImgUrlList":["https://example.com/product.png"]}', [System.Text.UTF8Encoding]::new($false))
+[System.IO.File]::WriteAllText("payload_temp.json", '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"modelEdition":9,"channel":"promotion","fileUrlList":["https://example.com/product.png"]}', [System.Text.UTF8Encoding]::new($false))
 ```
 
 执行请求：
@@ -268,7 +275,7 @@ rm payload_temp.json
 
 **macOS/Linux**：
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"channel":"promotion","apiImgUrlList":["https://example.com/product.png"]}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/allAroundCreationAsync" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"aspectRatio":"1:1","query":"生成钢笔的产品图","detailPictureNumber":4,"modelEdition":9,"channel":"promotion","fileUrlList":["https://example.com/product.png"]}'
 ```
 
 ### 示例 2：查询任务结果
@@ -312,21 +319,24 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryT
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
 | `agentGenerateTaskId` 为空 | 创建任务失败或响应结构异常，检查创建任务接口返回 |
 | 查询结果一直是 `0` 或 `1` | 图片仍在排队或生成中，等待后继续轮询 |
-| `taskStatus=3` | 对应图片生成失败，可简化提示词、减少参考图或重试 |
-| `detailPictureNumber` 超出范围 | 该接口仅支持单次生成 `1-4` 张 |
-| `apiImgUrlList` 无法访问 | 参考图 URL 不是公网直链、已过期，或源站限制访问 |
+| `status=3/4` 或 `taskStatus=3` | 全部或部分图片生成失败，`executeResult` 为失败原因，可简化提示词、减少参考图或重试 |
+| `detailPictureNumber 不能超过 20` / `传入非法值` | 该接口单次支持生成 `1-20` 张 |
+| `图片超出 6 张` | `fileUrlList` 最多 6 张 |
+| `modelEdition 传入非法值[x]` | 只传 `9` / `13` / `14` |
+| `自由创作使用 Coze，请新建对话后重试` | 传了不兼容的 `conversationId`，去掉该字段重新提交 |
+| `fileUrlList` 无法访问 | 参考图 URL 不是公网直链、已过期，或源站限制访问 |
 | 比例不支持 | `aspectRatio` 必须使用文档规定的比例枚举 |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集用户的生成需求并写入 `query`
-3. 收集可选参考图并写入 `apiImgUrlList`（本地文件先按「本地文件上传」章节换取公网直链）
-4. 确定 `detailPictureNumber`，未指定时默认 `4`
+3. 收集可选参考图并写入 `fileUrlList`（本地文件先按「本地文件上传」章节换取公网直链）
+4. 确定 `detailPictureNumber`（1~20），未指定时默认 `4`；`modelEdition` 未指定时传 `9`，`channel` 未指定时传 `promotion`
 5. 确定 `aspectRatio`，未指定时可为空或不传
 6. 在请求头中传入 `secretKey`
 7. 调用创建任务接口，从响应中读取 `data.agentGenerateTaskId`
-8. 轮询调用查询结果接口，将 `taskStatus=2` 的 `executeResult` 图片 URL 逐个展示给用户
+8. 每 3~5 秒轮询查询结果接口直到 `data.status` 不为 `1`，将 `taskStatus=2` 的 `executeResult` 图片 URL 逐个展示给用户
 
 **提示词处理：**
 该接口适合宽泛的创意图片生成，但仍应把提示词写得明确、短而有约束。

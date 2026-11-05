@@ -33,6 +33,7 @@ secretKey: 用户提供的API密钥
 
 - **URL**: `POST https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult`
 - **超时时间**: 建议 30 秒
+- **说明**: 图片类异步任务的查询接口（视频类任务用 `videoGen/queryResult`，本技能不涉及）
 
 ## 请求 Body
 
@@ -81,16 +82,18 @@ secretKey: 用户提供的API密钥
         "taskStatus": 2,
         "executeResult": "https://example.com/result2.png"
       }
-    ]
+    ],
+    "status": 2
   }
 }
 ```
 
-- `code=200` 表示调用成功
-- `agentGenerateTaskId` 为异步任务ID，用于后续查询结果
-- `taskStatus`: 0-待生成，1-生成中，2-生成成功，3-生成失败
-- `executeResult` 为生成的图片URL
-- 将结果图片逐个展示给用户，不要回读图片内容
+- `code=200` 表示调用成功；业务失败（参数校验、算力不足等）时 HTTP 状态码仍是 200，`code` 非 200，原因在 `msg` 里
+- `data.agentGenerateTaskId` 为异步任务ID（字符串，避免长整型精度丢失），原样用于后续查询
+- `data.status` 整体状态：1-进行中，2-全部成功，3-全部失败，4-部分成功；**不为 1 即可停止轮询**
+- `data.taskList[]` 每张图的明细，每张爆款参考图对应一条：`taskStatus` 0-待生成，1-生成中，2-生成成功，3-生成失败
+- `executeResult`：成功时为图片URL，失败时为失败原因
+- 将成功的结果图片逐个展示给用户，不要回读图片内容；部分成功（status=4）时同时告知失败的条目
 
 ## 参数说明
 
@@ -100,39 +103,41 @@ secretKey: 用户提供的API密钥
 
 | 字段 | 默认值 | 说明 |
 |------|--------|------|
-| replaceUrl | - | 产品素材图地址，多张用英文逗号分隔，总大小在10MB以内 |
-| sourceUrl | - | 爆款参考图地址，最多10张，多张用英文逗号分隔 |
+| replaceUrl | - | 产品素材图地址（http/https），多张用英文逗号分隔，总大小在10MB以内 |
+| sourceUrl | - | 爆款参考图地址（http/https），最多10张，多张用英文逗号分隔；每张参考图生成 1 张结果 |
 | prompt | - | 提示词，最多1000个字符长度 |
-| modelType | - | 模型类型：`0`=gemini-2.5，`2`=Flyelep Nano 2（gemini-3.1），`3`=doubao-seedream，`9`=Flyelep Image 2 |
+| modelType | - | 模型类型：`9`=Flyelep Image 2（推荐），`2`=Flyelep Nano 2 |
 | ratio | - | 生图比例 |
-| language | - | 生成语言 |
+| language | - | 生成语言（图中文字语言），不需要文字时传 `无文本` |
+
+> 以上 6 个字段全部必传，缺任何一个接口都会直接报错。
 
 ### 参数映射规则
 
 **modelType**（模型类型）：
-- `0`：gemini-2.5
-- `2`：Flyelep Nano 2（gemini-3.1），按 30 算力/张计费
-- `3`：doubao-seedream
-- `9`：Flyelep Image 2，与 `0` 同属 10 算力/张计费档
-- 只接受以上四个取值，传其它值接口直接拒绝
+- `9`：Flyelep Image 2（推荐）
+- `2`：Flyelep Nano 2
+- 传数字即可（字符串 `"9"` 也能识别）；传其它值接口报「爆款图片生成模型类型仅支持…」
+- **计费**：生成成功后按成功的张数扣除算力，单价随模型不同，见官网功能定价；提交时会预检算力是否足够
 
 **ratio**（图片比例）：
 - 支持：`1:1`、`3:2`、`2:3`、`3:4`、`4:3`、`4:5`、`5:4`、`16:9`、`9:16`、`21:9`
 - 传其它比例接口报「生图比例不合法」
 
 **language**（生成语言）：
-- 中文简体、中文繁体、英文、俄语、日语、韩语、阿拉伯语、德语、西班牙语、法语、泰语、马来语、越南语、葡萄牙语、菲律宾语、印尼语、意大利语、荷兰语、波兰语、罗马尼亚语、匈牙利、保加利亚语
-- 必须原样使用上面的中文标签（例如是 `英文` 而不是 `英语`），传其它写法会被拒绝
+- 中文简体、中文繁体、英文、俄语、日语、韩语、阿拉伯语、德语、西班牙语、法语、泰语、马来语、越南语、葡萄牙语、菲律宾语、印尼语、意大利语、荷兰语、波兰语、罗马尼亚语、匈牙利、保加利亚语、无文本
+- 必须原样使用上面的中文标签（例如是 `英文` 而不是 `英语`，`匈牙利` 不带「语」），传其它写法会被拒绝
+- 图中不需要文字时传 `无文本`
 
 **replaceUrl**（产品素材）：
-- 产品素材图地址，用于替换爆款图中的产品
+- 产品素材图地址，用于替换爆款图中的产品，必须是 http/https 链接
 - 多张图用英文逗号`,`分隔
 - 总大小需在10MB以内
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
 **sourceUrl**（爆款参考）：
-- 爆款参考图片地址，用于提供风格参考
-- 最多10张
+- 爆款参考图片地址，用于提供风格参考，必须是 http/https 链接
+- 最多10张，每张参考图各生成 1 张复刻结果（传 3 张就出 3 张）
 - 多张图用英文逗号`,`分隔
 - 如果用户提供本地文件路径，先按「本地文件上传」章节换取公网直链，再填入此参数
 
@@ -140,12 +145,13 @@ secretKey: 用户提供的API密钥
 
 > **重要**：本接口为异步接口，必须**先调用主接口获取 `agentGenerateTaskId`，然后调用 `queryTaskResult` 接口轮询任务结果**，不能省略轮询步骤。
 
-1. 调用主接口（`generateHotImage`）提交任务，从响应中获取 `agentGenerateTaskId`
-2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每5-10秒查询一次）
-3. 当 `taskStatus=2` 时，表示生成成功，获取 `executeResult` 结果
-4. 当 `taskStatus=3` 时，表示生成失败
+1. 调用主接口（`generateHotImage`）提交任务，从响应 `data.agentGenerateTaskId` 获取任务ID
+2. 使用 `agentGenerateTaskId` 调用 `queryTaskResult` 接口轮询任务结果（建议每 3-5 秒查询一次）
+3. `data.status=1` 时继续轮询；`status` 不为 1 时停止
+4. `status=2` 全部成功、`status=4` 部分成功：取 `taskList` 中 `taskStatus=2` 的 `executeResult` 作为图片URL
+5. `status=3` 全部失败：`executeResult` 为失败原因
 
-> **轮询策略**：超时时间不超过5分钟
+> **轮询策略**：整体超时不超过 5 分钟
 
 ## 本地文件上传
 
@@ -160,15 +166,15 @@ secretKey: 用户提供的API密钥
 - 原文件名不会出现在 URL 里，中文名、空格、特殊字符都能直接上传，不需要提前改名
 - 上传不消耗算力，但服务端不做去重：同一个文件在一次任务里只上传一次，记下 `fullPath` 复用
 
-成功响应取 `data.fullPath` 作为公网直链，永久有效、不带签名：
+成功响应取 `data.fullPath` 作为公网直链，不带签名，**只保证 24 小时内可访问**，拿到后应尽快用于生成任务：
 
 ```json
 {
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -242,7 +248,7 @@ rm payload_temp.json
 [System.IO.File]::WriteAllText("payload_temp.json", '{"agentGenerateTaskId":"2072922328536604674"}', [System.Text.UTF8Encoding]::new($false))
 ```
 
-步骤 5：执行查询请求（每5-10秒轮询，直到 `taskStatus=2`）：
+步骤 5：执行查询请求（每 3-5 秒轮询，直到 `data.status` 不为 1）：
 ```bash
 curl.exe --% -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary @payload_temp.json
 ```
@@ -259,7 +265,7 @@ rm payload_temp.json
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/generateHotImage" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 120 --data-binary '{"replaceUrl":"https://example.com/product.png","sourceUrl":"https://example.com/hot_image.png","prompt":"突出产品卖点，增强视觉冲击力","modelType":9,"ratio":"1:1","language":"中文简体"}'
 ```
 
-查询结果（每5-10秒轮询，直到 `taskStatus=2`）：
+查询结果（每 3-5 秒轮询，直到 `data.status` 不为 1）：
 ```bash
 curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/queryTaskResult" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 30 --data-binary '{"agentGenerateTaskId":"2072922328536604674"}'
 ```
@@ -316,21 +322,25 @@ curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/aiTool/genera
 |------|-----------|
 | HTTP 401 / `code` 非 200 | `secretKey` 无效、缺失或已过期，确认请求头是否正确传入 |
 | HTTP 405 Not Allowed | 请求方法错误，必须使用 `POST` |
-| replaceUrl/sourceUrl 格式错误 | 多个URL用英文逗号分隔，不是JSON数组 |
+| replaceUrl/sourceUrl 格式错误 | 多个URL用英文逗号分隔，不是JSON数组；每个都必须是 http/https 链接 |
+| `提示词不能为空` / `替换图不能为空` / `原图不能为空` / `生图比例不能为空` / `语言不能为空` / `模型类型不能为空` | 6 个字段全部必传，补齐后重试 |
+| `爆款图片生成模型类型仅支持…` | `modelType` 改用 `9` 或 `2` |
+| 生图比例不合法 | `ratio` 只能用支持列表中的值 |
+| 语言不支持 | `language` 必须原样使用支持列表中的中文标签，如 `英文` 而不是 `英语` |
 | 素材图超过10MB | 压缩产品素材图大小 |
 | 参考图超过10张 | 减少sourceUrl中的图片数量 |
 | prompt 超过1000字符 | 缩短提示词内容 |
 | 服务繁忙（9999错误码） | 稍后重试 |
-| taskStatus=3 生成失败 | 检查素材图质量，尝试更换图片或调整prompt |
+| status=3 / taskStatus=3 生成失败 | 失败原因在 `executeResult` 里；检查素材图质量，尝试更换图片或调整prompt |
 
 ## 执行流程
 
 1. **向用户询问 `secretKey`**（API 密钥必须由用户提供，agent 不可自行填写）
 2. 收集产品素材图 URL 和爆款参考图 URL（如用户提供本地文件，先按「本地文件上传」章节换取公网直链）
 3. 与用户确认复刻需求，构造 `prompt`，选择 `modelType`、`ratio`、`language`
-4. 在请求头中传入 `secretKey`，调用创建任务接口，获取 `agentGenerateTaskId`
-5. 使用 `agentGenerateTaskId` 轮询查询结果接口（每5-10秒一次），直到 `taskStatus=2`
-6. 将返回的结果图片逐个展示给用户
+4. 在请求头中传入 `secretKey`，调用创建任务接口，获取 `data.agentGenerateTaskId`
+5. 使用 `agentGenerateTaskId` 轮询 `queryTaskResult`（每 3-5 秒一次），直到 `data.status` 不为 1
+6. 将 `taskStatus=2` 的结果图片逐个展示给用户，失败条目说明原因
 
 复刻时，prompt 应指导AI：
 - 保持爆款图的整体风格、配色和构图
