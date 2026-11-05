@@ -6,7 +6,7 @@ description: >-
   referenceImageStr / referenceVideoStr / referenceAudioStr（生成视频）入参时使用此技能。
 ---
 # Flyelep 文件上传
-通过 Flyelep 开放接口把本地图片、视频、音频文件上传到云存储，并返回永久可访问的 URL。
+通过 Flyelep 开放接口把本地图片、视频、音频文件上传到云存储，并返回 24 小时内可公网访问的 URL，用作其它技能的素材入参。
 
 **重要：这是一个 HTTP API 调用技能。必须通过 HTTP POST 请求调用 API 接口，禁止通过浏览器访问 Flyelep 网站。**
 
@@ -46,8 +46,8 @@ secretKey: 用户提供的API密钥
   "code": 200,
   "msg": null,
   "data": {
-    "relativePath": "cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
-    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent/2026-08-11/3f2a9c1b7d84e6f5a012.png",
+    "relativePath": "cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
+    "fullPath": "https://agent-1404002717.cos.ap-guangzhou.myqcloud.com/cos_ai_agent_h_24/2026-11-05/3f2a9c1b7d84e6f5a012.png",
     "serviceProvider": null
   }
 }
@@ -55,7 +55,7 @@ secretKey: 用户提供的API密钥
 
 - `code=200` 表示调用成功
 - **判断成功只看 `code`，不要只看 HTTP 状态码**：业务失败时 HTTP 仍是 200，`code` 会是 500 或 9999，原因在 `msg` 里
-- `data.fullPath` 为完整可访问 URL，永久有效、不带签名、不会过期
+- `data.fullPath` 为完整可访问 URL，不带签名，**只保证 24 小时内可访问**（上传目录为 24 小时限时目录，过期后文件会被清理）。拿到后应尽快用于后续生成任务，不要当作长期存储地址交给用户保存；生成结果的图片、视频地址不受此限制
 - `data.relativePath` 为对象存储的内部 key
 - `data.serviceProvider` 恒为 `null`，开放接口固定落国内 COS 桶，不需要处理这个字段
 
@@ -65,9 +65,9 @@ secretKey: 用户提供的API密钥
 - `relativePath` 是存储侧内部标识，除非接口明确要求，否则不要传
 
 ### 文件名与 URL 的关系
-- 服务端会把对象重命名为 `cos_ai_agent/yyyy-MM-dd/32位UUID.后缀`，**原文件名不出现在 URL 里**（只留档在文件记录中）
+- 服务端会把对象重命名为 `cos_ai_agent_h_24/yyyy-MM-dd/32位UUID.后缀`，**原文件名不出现在 URL 里**（只留档在文件记录中）
 - 因此中文名、空格、括号、特殊字符的文件名都能正常上传，不需要提前改名；但**后缀必须保留**，服务端靠它判断格式
-- 同一个文件重复上传会得到两个不同的 URL，服务端不做去重。**同一个文件在一次任务里只上传一次**，把 `fullPath` 记下来复用，不要每步都重传
+- 同一个文件重复上传会得到两个不同的 URL，服务端不做去重。**同一个文件在一次任务里只上传一次**，把 `fullPath` 记下来复用，不要每步都重传；但距上次上传已超过 24 小时的，要重新上传
 
 ### 是否计费
 上传不消耗算力/积分，也不占用生图的并发额度，只做鉴权和内容审核。但它会真实写入对象存储，不要拿它做批量试探或压测。
@@ -123,10 +123,10 @@ curl.exe -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/file/uplo
 **示例 4：上传后接着调用其它技能**
 
 1. 上传本地文件，从响应里取出 `data.fullPath`
-2. 图片 URL 作为 `imgUrls` 传给抠图、翻译、延展等技能；视频、音频 URL 作为 `referenceVideoStr`、`referenceAudioStr` 传给生成视频技能
+2. 图片 URL 按各技能要求的字段（如抠图的 `imageUrlList`、延展的 `imgUrlList`）传入；视频、音频 URL 作为 `referenceVideoStr`、`referenceAudioStr` 传给生成视频技能
 
 ```bash
-curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imgUrls":"上一步返回的 fullPath"}'
+curl -X POST "https://www.flyelep.cn/prod-api/poster-design/api/v1/poster/aiTool/aiImageMatting" -H "Content-Type: application/json; charset=utf-8" -H "secretKey: 你的密钥" --max-time 300 --data-binary '{"imageUrlList":["上一步返回的 fullPath"]}'
 ```
 
 ## 常见错误及解决方案
