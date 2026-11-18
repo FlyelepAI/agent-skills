@@ -26,7 +26,6 @@
 | [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
 | [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，支持创意复刻与 1:1 复刻 |
 | [generate-video](skills/generate-video/SKILL.md) | 电商视频生成，根据提示词和参考素材生成产品视频 |
-| [file-upload](skills/file-upload/SKILL.md) | 上传本地图片、视频、音频，返回 24 小时内可访问的直链 |
 
 ## 环境要求
 
