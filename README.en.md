@@ -141,6 +141,8 @@ Pick one:
   npx skills add FlyelepAI/agent-skills
   ```
 
+  This installs one bundle, `flyelep-ai-skills`, containing every skill; Claude Code, Cursor, Codex and other agents are detected automatically
+
 - **Manual (Claude Code / Cursor / Codex, etc.)**: copy the skill folders under `skills/` into your agent's skills directory (e.g. `~/.claude/skills/` for Claude Code), or simply give the repo URL `https://github.com/FlyelepAI/agent-skills` to your agent and ask it to load the skills
 
 ### 2. Set your secret key
@@ -183,7 +185,7 @@ The agent will upload the local file → call `generate-poster` → poll for the
 
 ## 💡 Typical Usage
 
-### Case 1: A full Amazon listing in 30 minutes
+### Case 1: A full Amazon listing in 3 minutes
 
 > "Here is a white-background photo of my insulated bottle with key points (316 stainless steel, 12-hour insulation, 500ml). Make an Amazon US main image set and 3 A+ detail images, in English."
 

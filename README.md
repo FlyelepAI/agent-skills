@@ -141,6 +141,8 @@
   npx skills add FlyelepAI/agent-skills
   ```
 
+  安装后是一个技能包 `flyelep-ai-skills`，已包含全部技能，自动识别 Claude Code、Cursor、Codex 等 Agent
+
 - **手动安装（Claude Code / Cursor / Codex 等）**：把本仓库 `skills/` 下需要的技能目录复制到 Agent 的技能目录（如 Claude Code 的 `~/.claude/skills/`），或直接把仓库地址 `https://github.com/FlyelepAI/agent-skills` 发给 Agent 让它加载
 
 ### 2. 配置密钥
@@ -183,7 +185,7 @@ Agent 会自动：上传本地图片 → 调用 `generate-poster` → 轮询结�
 
 ## 💡 典型用法
 
-### 案例 1：跨境卖家 30 分钟上新一套 Amazon 图
+### 案例 1：跨境卖家 3 分钟上新一套 Amazon 图
 
 > “这是保温杯的白底图和卖点（316 不锈钢、12 小时保温、500ml），给我做一套 Amazon US 主副图，再做 3 张 A+ 详情图，英文。”
 
