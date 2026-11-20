@@ -144,10 +144,11 @@
   安装后是一个技能包 `flyelep-ai-skills`，已包含全部技能，自动识别 Claude Code、Cursor、Codex 等 Agent
 
 - **手动安装（Claude Code / Cursor / Codex 等）**：把本仓库 `skills/` 下需要的技能目录复制到 Agent 的技能目录（如 Claude Code 的 `~/.claude/skills/`），或直接把仓库地址 `https://github.com/FlyelepAI/agent-skills` 发给 Agent 让它加载
+- **WorkBuddy**：见下文 [WorkBuddy 接入](#workbuddy-接入)
 
 ### 2. 配置密钥
 
-登录 [Flyelep 开放平台](https://www.flyelep.cn) →「API Key」创建密钥（或联系 Flyelep 客服获取），然后告诉 Agent：
+登录 [Flyelep 开放平台](https://www.flyelep.cn/controlboard) →「API Key」创建密钥（或联系 Flyelep 客服获取），然后告诉 Agent：
 
 ```
 我的 Flyelep secretKey 是 sk-xxxx，后面调用 Flyelep 技能都用它。
@@ -218,6 +219,29 @@ Agent 会自动：上传本地图片 → 调用 `generate-poster` → 轮询结�
 ---
 
 ## 📘 使用教程
+
+### WorkBuddy 接入
+
+**准备**：下载 [技能包 ZIP](https://github.com/FlyelepAI/agent-skills/archive/refs/heads/main.zip) 并解压，得到 `agent-skills` 文件夹。
+
+**方式一：自然语言安装（推荐）**
+
+1. WorkBuddy 对话框左下角点「选择工作空间」→「打开本地文件夹」，选择解压后的 `agent-skills` 文件夹
+2. 在对话框输入：`帮我安装当前目录下的技能 SKILL.md`
+
+<img src="assets/tutorial/workbuddy-open-folder.jpg" width="560">
+
+**方式二：手动安装**
+
+对话框左下角点「+」→「技能」→「从本地添加技能」，导入根目录的 `SKILL.md`；也可以逐个导入 `skills/` 下各技能的 `SKILL.md`。
+
+<img src="assets/tutorial/workbuddy-add-skill.jpg" width="560">
+
+> **注意**：根目录 `SKILL.md`（技能名 `flyelep-ai-skills`）是总入口，记录了全部子技能的位置。只安装它时，`skills/` 文件夹必须在当前工作空间里（即方式一打开的文件夹），否则调用子技能会失败；逐个安装子技能则没有这个限制。
+>
+> <img src="assets/tutorial/skills-folder.jpg" width="480">
+
+**验证**：安装后 WorkBuddy 会自动识别，问一句「有哪些 skills 技能」，回复里出现 Flyelep 技能即接入成功；再发送 secretKey 就能直接说需求。
 
 ### 常用说法
 

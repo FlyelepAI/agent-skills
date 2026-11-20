@@ -144,10 +144,11 @@ Pick one:
   This installs one bundle, `flyelep-ai-skills`, containing every skill; Claude Code, Cursor, Codex and other agents are detected automatically
 
 - **Manual (Claude Code / Cursor / Codex, etc.)**: copy the skill folders under `skills/` into your agent's skills directory (e.g. `~/.claude/skills/` for Claude Code), or simply give the repo URL `https://github.com/FlyelepAI/agent-skills` to your agent and ask it to load the skills
+- **WorkBuddy**: see [WorkBuddy setup](#workbuddy-setup) below
 
 ### 2. Set your secret key
 
-Sign in to the [Flyelep Open Platform](https://www.flyelep.ai/) → "API Key" to create a key (or contact Flyelep support), then tell your agent:
+Sign in to the [Flyelep Open Platform](https://www.flyelep.ai/controlboard) → "API Key" to create a key (or contact Flyelep support), then tell your agent:
 
 ```
 My Flyelep secretKey is sk-xxxx. Use it for all Flyelep skills.
@@ -218,6 +219,31 @@ The agent will upload the local file → call `generate-poster` → poll for the
 ---
 
 ## 📘 Tutorial
+
+### WorkBuddy setup
+
+**Prepare**: download the [skills ZIP](https://github.com/FlyelepAI/agent-skills/archive/refs/heads/main.zip) and unzip it to get the `agent-skills` folder.
+
+**Option 1: install by chatting (recommended)**
+
+1. In WorkBuddy, click "Select workspace" at the bottom left of the chat box → "Open local folder", and pick the unzipped `agent-skills` folder
+2. Type in the chat: `Install the skill SKILL.md in the current directory`
+
+<img src="assets/tutorial/workbuddy-open-folder.jpg" width="560">
+
+**Option 2: install manually**
+
+Click "+" at the bottom left of the chat box → "Skills" → "Add skill from local", and import the root `SKILL.md`; you can also import each `SKILL.md` under `skills/` one by one.
+
+<img src="assets/tutorial/workbuddy-add-skill.jpg" width="560">
+
+> **Note**: the root `SKILL.md` (skill name `flyelep-ai-skills`) is the entry point that lists where every sub-skill lives. If you install only this one, the `skills/` folder must be inside the current workspace (the folder opened in option 1), otherwise calls to sub-skills fail. Installing each sub-skill separately has no such requirement.
+>
+> <img src="assets/tutorial/skills-folder.jpg" width="480">
+
+**Verify**: WorkBuddy picks up skills automatically after install. Ask "What skills do you have?" — if Flyelep skills are listed, you're set. Then send your secretKey and describe what you need.
+
+*(Screenshots show the Chinese WorkBuddy UI.)*
 
 ### Things you can say
 
