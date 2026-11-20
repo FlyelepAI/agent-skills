@@ -8,7 +8,111 @@
 
 **中文** · [English](README.en.md)
 
-[30 秒上手](#-30-秒上手) · [能做什么](#-能做什么) · [案例](#-案例) · [使用教程](#-使用教程) · [全部技能](#-全部技能) · [ClawHub](https://clawhub.ai/flyelepai)
+[30 秒上手](#-30-秒上手) · [能做什么](#-能做什么) · [效果展示](#-效果展示) · [典型用法](#-典型用法) · [使用教程](#-使用教程) · [全部技能](#-全部技能) · [ClawHub](https://clawhub.ai/flyelepai)
+
+---
+
+## 🖼 效果展示
+
+> 以下均为 Flyelep 一句话生成的真实成品，来自 [Flyelep 官网](https://www.flyelep.cn/) 灵感广场与 AI 工具箱。
+
+### 一句话出图：多平台、多语种直接可用
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/showcase/gallery-01.jpg" width="200"><br><sub>阿拉伯语 · 香水</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-02.jpg" width="200"><br><sub>泰语 · 美妆工具</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-03.jpg" width="200"><br><sub>意大利语 · 益智玩具</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-04.jpg" width="200"><br><sub>泰语 · 护肤</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/showcase/gallery-05.jpg" width="200"><br><sub>中文 · 氛围海报</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-06.jpg" width="200"><br><sub>中文 · 运动服饰</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-07.jpg" width="200"><br><sub>模特街拍</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-08.jpg" width="200"><br><sub>德语 · 厨房电器</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="assets/showcase/gallery-09.jpg" width="200"><br><sub>菲律宾语 · 童鞋</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-10.jpg" width="200"><br><sub>韩语 · 食品</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-11.jpg" width="200"><br><sub>印尼语 · 床品</sub></td>
+    <td align="center"><img src="assets/showcase/gallery-12.jpg" width="200"><br><sub>荷兰语 · 儿童家具</sub></td>
+  </tr>
+</table>
+
+### 一次出一整套详情图
+
+<img src="assets/showcase/set-01.jpg" width="160"> <img src="assets/showcase/set-02.jpg" width="160"> <img src="assets/showcase/set-03.jpg" width="160"> <img src="assets/showcase/set-04.jpg" width="160"> <img src="assets/showcase/set-05.jpg" width="160">
+
+<sub>“给这款方框眼镜做一套西班牙语详情图” → `generate-poster` 一次输出整套</sub>
+
+### AI 改图：原图 → 效果
+
+<table>
+  <tr><th>一句话需求 · 技能</th><th>原图</th><th>效果</th></tr>
+  <tr>
+    <td><b>AI 抠图</b><br>“把这件 T 恤抠出来，透明底”<br><code>ai-image-matting</code></td>
+    <td><img src="assets/showcase/tool-matting-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-matting-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>场景替换</b><br>“换成北欧风客厅场景”<br><code>scene-replace</code></td>
+    <td><img src="assets/showcase/tool-scene-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-scene-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>商品替换</b><br>“把苹果换成我的精华瓶”<br><code>product-replace</code></td>
+    <td><img src="assets/showcase/tool-product-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-product-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>商品换色</b><br>“杯子换成柠檬黄”<br><code>product-color-change</code></td>
+    <td><img src="assets/showcase/tool-color-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-color-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>图片翻译</b><br>“翻译成俄语，版式不变”<br><code>image-translate</code></td>
+    <td><img src="assets/showcase/tool-translate-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-translate-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>主图打标</b><br>“加上促销价和卖点标签”<br><code>main-image-tagging</code></td>
+    <td><img src="assets/showcase/tool-tagging-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-tagging-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>智能延展</b><br>“延展成横版 16:9”<br><code>intelligent-extension</code></td>
+    <td><img src="assets/showcase/tool-extension-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-extension-after.jpg" width="220"></td>
+  </tr>
+  <tr>
+    <td><b>无损放大</b><br>“放大 4 倍”<br><code>image-enlarge</code></td>
+    <td><img src="assets/showcase/tool-enlarge-before.jpg" width="220"></td>
+    <td><img src="assets/showcase/tool-enlarge-after.jpg" width="220"></td>
+  </tr>
+</table>
+
+### 爆款复刻 · 图层分离 · 多图融合
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/showcase/tool-hot-image.jpg" width="260"><br><sub><code>gen-hot-image</code> 参考爆款，复刻同款</sub></td>
+    <td align="center"><img src="assets/showcase/tool-layers.jpg" width="260"><br><sub><code>image-layer-decompose</code> 拆成可编辑图层</sub></td>
+    <td align="center"><img src="assets/showcase/tool-fusion.jpg" width="200"><br><sub><code>long-image-fusion</code> 多图无缝拼长图</sub></td>
+  </tr>
+</table>
+
+### 商品视频：点封面看成片
+
+<table>
+  <tr>
+    <td align="center"><a href="https://cos-agent-2717.flyelep.cn/cos_ai_agent/2026-07-17/3654bab2ea14442eb8b51d19b538ad31.mp4"><img src="assets/showcase/video-01.jpg" width="180"></a><br><sub>▶ 品牌宣传片</sub></td>
+    <td align="center"><a href="https://cos-agent-2717.flyelep.cn/cos_ai_agent/2026-07-17/70ee09ca557246afad23a86fe09e93c1.mp4"><img src="assets/showcase/video-02.jpg" width="180"></a><br><sub>▶ 带货种草</sub></td>
+    <td align="center"><a href="https://cos-agent-2717.flyelep.cn/cos_ai_agent/2026-07-20/a199fcaeef8f46deb8ae76fc6ab18d78.mp4"><img src="assets/showcase/video-03.jpg" width="180"></a><br><sub>▶ 口播讲解</sub></td>
+    <td align="center"><a href="https://cos-agent-2717.flyelep.cn/cos_ai_agent/2026-07-17/6c5acb956dbe4551b00f0616fde20696.mp4"><img src="assets/showcase/video-04.jpg" width="180"></a><br><sub>▶ 剧情短片</sub></td>
+  </tr>
+</table>
+
+<sub>`generate-video` 出主图视频、种草、口播、品牌片；`gen-hot-video` 参考爆款视频一键复刻。</sub>
 
 ---
 
@@ -77,7 +181,7 @@ Agent 会自动：上传本地图片 → 调用 `generate-poster` → 轮询结�
 | **辅助** | 文案帮写、优化提示词 | `ai-writing-assist` |
 ---
 
-## 🖼 案例
+## 💡 典型用法
 
 ### 案例 1：跨境卖家 30 分钟上新一套 Amazon 图
 
@@ -108,8 +212,6 @@ Agent 会自动：上传本地图片 → 调用 `generate-poster` → 轮询结�
 
 - **用到的技能**：`main-image-tagging`
 - **产出**：20 张统一版式的促销主图
-
-> 更多效果图持续更新中。
 
 ---
 
