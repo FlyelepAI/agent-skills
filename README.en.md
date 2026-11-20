@@ -1,3 +1,5 @@
+<div align="center">
+
 <p align="center"><a href="https://www.flyelep.ai/"><img src="assets/logo.png" alt="Flyelep" width="96"></a></p>
 
 # Flyelep AI Agent Skills
@@ -9,6 +11,8 @@
 [中文](README.md) · **English**
 
 [30-second Quickstart](#-30-second-quickstart) · [What It Does](#-what-it-does) · [Gallery](#-gallery) · [Typical Usage](#-typical-usage) · [Tutorial](#-tutorial) · [All Skills](#-all-skills) · [ClawHub](https://clawhub.ai/flyelepai)
+
+</div>
 
 ---
 

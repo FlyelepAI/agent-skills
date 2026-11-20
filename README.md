@@ -1,3 +1,5 @@
+<div align="center">
+
 <p align="center"><a href="https://www.flyelep.cn/"><img src="assets/logo.png" alt="Flyelep" width="96"></a></p>
 
 # Flyelep AI Agent Skills
@@ -9,6 +11,8 @@
 **中文** · [English](README.en.md)
 
 [30 秒上手](#-30-秒上手) · [能做什么](#-能做什么) · [效果展示](#-效果展示) · [典型用法](#-典型用法) · [使用教程](#-使用教程) · [全部技能](#-全部技能) · [ClawHub](https://clawhub.ai/flyelepai)
+
+</div>
 
 ---
 
