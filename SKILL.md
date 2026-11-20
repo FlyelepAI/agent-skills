@@ -34,6 +34,7 @@ description: >-
 
 - 用户需联系 Flyelep 客服获取 API 密钥 `secretKey`
 - Flyelep 平台地址：https://www.flyelep.cn，接口文档：https://api.flyelep.cn/
+- 技能发布页：GitHub https://github.com/FlyelepAI/agent-skills ，ClawHub https://clawhub.ai/flyelepai
 - 接口基础地址：`https://www.flyelep.cn/prod-api`
 - 本仓库中的技能统一要求在请求头中传入 `secretKey`（查询账户算力接口除外，见下文）
 - 计费标准见 Flyelep 官网：首页左侧「算力 > 功能定价」

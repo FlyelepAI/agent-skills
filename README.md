@@ -1,8 +1,144 @@
-# Flyelep AI Agent 技能集合
+<p align="center"><a href="https://www.flyelep.cn/"><img src="assets/logo.png" alt="Flyelep" width="96"></a></p>
 
-可通过仓库 URL 被 OpenClaw、Claude Code 等 AI 工具加载。仓库中的技能全部基于 Flyelep API 接口文档整理，覆盖电商海报生成、AI 图片工具、视频生成三大类能力。接口文档：https://api.flyelep.cn/
+# Flyelep AI Agent Skills
 
-## 可用技能
+### 电商出图 · 改图 · 视频 —— 一句话交给你的 AI Agent
+
+**把 Flyelep 的电商 AI 能力装进 Claude Code、OpenClaw、Cursor、Codex 等 Agent：说一句需求，自动出主图、套图、详情图、爆款复刻和商品视频。**
+
+**中文** · [English](README.en.md)
+
+[30 秒上手](#-30-秒上手) · [能做什么](#-能做什么) · [案例](#-案例) · [使用教程](#-使用教程) · [全部技能](#-全部技能) · [ClawHub](https://clawhub.ai/flyelepai)
+
+---
+
+## ✨ 为什么用它
+
+| 以前 | 用 Flyelep Skills |
+|---|---|
+| 找设计师排期，一套主图等好几天 | 对 Agent 说一句话，几分钟出一套主图 + 详情图 |
+| 抠图、换背景、换色、放大要在不同工具里来回切 | 20 个技能装在同一个 Agent 里，按需自动组合调用 |
+| 跨境上架要逐张翻译、重做多语言图片 | 图片翻译一次出多语言版本，保留原版式 |
+| 爆款风格学不来 | 发一张爆款图 / 爆款视频，用你的商品一键复刻 |
+| 接 API 要读文档、写代码、处理轮询 | Skill 已内置接口参数、轮询和本地文件上传，Agent 直接调用 |
+
+---
+
+## 🚀 30 秒上手
+
+### 1. 安装
+
+任选一种：
+
+- **ClawHub（OpenClaw）**：打开 [clawhub.ai/flyelepai](https://clawhub.ai/flyelepai)，选择需要的技能安装
+- **skills CLI**：
+
+  ```bash
+  npx skills add FlyelepAI/agent-skills
+  ```
+
+- **手动安装（Claude Code / Cursor / Codex 等）**：把本仓库 `skills/` 下需要的技能目录复制到 Agent 的技能目录（如 Claude Code 的 `~/.claude/skills/`），或直接把仓库地址 `https://github.com/FlyelepAI/agent-skills` 发给 Agent 让它加载
+
+### 2. 配置密钥
+
+登录 [Flyelep 开放平台](https://www.flyelep.cn) →「API Key」创建密钥（或联系 Flyelep 客服获取），然后告诉 Agent：
+
+```
+我的 Flyelep secretKey 是 sk-xxxx，后面调用 Flyelep 技能都用它。
+```
+
+> 密钥只放在你本地的 Agent 会话或环境变量里，不要提交到公开仓库。
+
+### 3. 直接说需求
+
+```
+这是我的蓝牙耳机产品图（本地图片），帮我做一套 Amazon US 主副图，英文，5 张。
+```
+
+Agent 会自动：上传本地图片 → 调用 `generate-poster` → 轮询结果 → 把图片链接发给你。
+
+---
+
+## 🎯 能做什么
+
+| 类别 | 场景 | 技能 |
+|---|---|---|
+| **出图** | 产品单图、白底图、主副图、套图、详情图、宣传图、Amazon A+ | `generate-poster` |
+| | 自由创作、多比例创意图 | `async-free-creation` |
+| | 参考爆款图，用你的商品复刻同款风格 | `gen-hot-image` |
+| | 主图批量打卖点、价格标签 | `main-image-tagging` |
+| **改图** | 抠图、换场景、换商品、换颜色 | `ai-image-matting` `scene-replace` `product-replace` `product-color-change` |
+| | 局部重绘、改图中文字 | `partial-redrawing` `image-text-recognize` `text-edit` |
+| | 超清、无损放大、智能延展（改比例） | `image-clarity-enhance` `image-enlarge` `intelligent-extension` |
+| | 多图融合长图、图层分离 | `long-image-fusion` `image-layer-decompose` |
+| | 多语言图片翻译 | `image-translate` |
+| **视频** | 商品主图视频、种草视频、品牌宣传 | `generate-video` |
+| | 参考爆款视频复刻（创意复刻 / 1:1 复刻） | `gen-hot-video` |
+| **辅助** | 文案帮写、优化提示词 | `ai-writing-assist` |
+---
+
+## 🖼 案例
+
+### 案例 1：跨境卖家 30 分钟上新一套 Amazon 图
+
+> “这是保温杯的白底图和卖点（316 不锈钢、12 小时保温、500ml），给我做一套 Amazon US 主副图，再做 3 张 A+ 详情图，英文。”
+
+- **用到的技能**：`generate-poster`（主副图 + 详情图，A+ 尺寸 `970x600`）
+- **产出**：一套主副图 + 3 张 A+ 图，英文卖点文案直接在图内
+- **继续说**：“把这套图翻译成德语和日语版” → `image-translate` 一次出两种语言
+
+### 案例 2：照着爆款做同款
+
+> “这张是竞品的爆款主图，用我的口红产品图复刻同样的构图和氛围，出 4 张。”
+> “再参考这条爆款短视频，用我的产品图做一条 15 秒的创意复刻视频。”
+
+- **用到的技能**：`gen-hot-image`（爆款图片复刻）、`gen-hot-video`（爆款视频复刻）
+- **产出**：4 张同风格商品图 + 1 条商品视频，商品外观保持你的原品
+
+### 案例 3：一张随手拍变成详情页素材
+
+> “这张是仓库里随手拍的运动鞋，先抠图，换成城市街头的场景，再做一张黑色款，最后放大 2 倍。”
+
+- **用到的技能**：`ai-image-matting` → `scene-replace` → `product-color-change` → `image-enlarge`
+- **产出**：透明底主体图、街拍场景图、黑色款场景图、高清放大图，Agent 自动串联，不用你逐个操作
+
+### 案例 4：批量改价格、打标签
+
+> “这 20 张商品图都按这张参考图的版式，打上‘限时 5 折’和价格 ¥99。”
+
+- **用到的技能**：`main-image-tagging`
+- **产出**：20 张统一版式的促销主图
+
+> 更多效果图持续更新中。
+
+---
+
+## 📘 使用教程
+
+### 常用说法
+
+| 你想要 | 可以这样说 |
+|---|---|
+| 一套主图 | “帮我做一套淘宝主图，5 张，中文卖点：……” |
+| 白底图 | “把这张产品图做成纯白底主图” |
+| 指定平台和语言 | “面向 TikTok Shop 美国站，英文，1:1” |
+| 选模型 | “用 Flyelep Image 2.5 生成” |
+| 改比例 | “把这张图延展成 9:16 竖图” |
+| 改图中文字 | “把图里的 ‘新品上市’ 改成 ‘Black Friday’” |
+| 做视频 | “用这三张产品图做一条 10 秒主图视频，1080p” |
+| 查余额 | “查一下我 Flyelep 账户还剩多少算力” |
+
+### 小技巧
+
+- **本地文件直接发**：Agent 会自动上传换成直链（24 小时内有效），再调用对应技能
+- **素材越清晰越好**：换场景、换商品、换色时，同时给清晰原图 + 明确的文字描述，效果更稳
+- **批量前先查余额**：大批量生成前让 Agent 先查一下剩余算力和并发上限
+- **组合使用**：一次说清楚多步需求（抠图 → 换场景 → 放大），Agent 会按顺序自动串联
+- **计费**：见 [Flyelep 官网](https://www.flyelep.cn) 左侧「算力 > 功能定价」
+
+---
+
+## 🧩 全部技能
 
 | 技能 | 描述 |
 |------|------|
@@ -26,27 +162,23 @@
 | [gen-hot-image](skills/gen-hot-image/SKILL.md) | 爆款图片复刻，基于爆款风格生成产品复刻图 |
 | [gen-hot-video](skills/gen-hot-video/SKILL.md) | 爆款视频复刻，支持创意复刻与 1:1 复刻 |
 | [generate-video](skills/generate-video/SKILL.md) | 电商视频生成，根据提示词和参考素材生成产品视频 |
+各技能的能力概述与接口入口汇总见 [SKILL.md](SKILL.md)，完整参数说明见对应目录下的 `SKILL.md`。
 
-## 环境要求
+---
 
-- 用户需联系 Flyelep 客服获取 API 密钥 `secretKey`
-- Flyelep 平台地址：https://www.flyelep.cn
-- 本仓库中的技能统一要求在请求头中传入 `secretKey`（查询账户算力接口 `/poster/queryApiCustomerPoint` 例外，密钥放在请求体中）
+## 🔧 开发者说明
+
+- 接口文档：https://api.flyelep.cn/ ，接口基础地址 `https://www.flyelep.cn/prod-api`
+- 所有技能统一在请求头传 `secretKey`（查询账户算力接口例外，密钥放在请求体中）
 - 图片类异步任务用 `/poster/queryTaskResult` 查结果，视频类（`generate-video`、`gen-hot-video`）用 `/poster/videoGen/queryResult`
 - AI 工具同步接口新增 `result.fileUrlList` / `result.taskId`，新接入优先读 `result`
-- `file-upload` 返回的直链只保证 24 小时内可访问
+- 所有技能均以各自目录中的 `SKILL.md` 为准；涉及素材入参的技能都内联了「本地文件上传」章节，只单独安装某一个技能也能完成上传
 
-## 使用建议
+## 🔗 链接
 
-- 所有技能均以各自目录中的 `SKILL.md` 为准
-- 对于需要高稳定性的调用，优先使用可公网访问、格式规范的图片直链
-- 用户提供的是本地文件而非直链时，先用 `file-upload` 上传换取直链，再调用其它技能
-- 涉及素材入参的技能都在自己的 `SKILL.md` 里内联了「本地文件上传」章节作为兜底，只单独安装某一个技能也能完成上传；**上传接口若有变动，需同步更新这些章节**
-- 对于场景替换、商品替换、商品换色这类生成型接口，建议尽量同时提供清晰原图和明确的文本描述
-
-## 技能总览
-
-各技能的能力概述与接口入口汇总见 [SKILL.md](SKILL.md)，完整参数说明见对应目录下的 `SKILL.md`。
+- Flyelep 平台：https://www.flyelep.cn/
+- ClawHub 发布页：https://clawhub.ai/flyelepai
+- API 文档：https://api.flyelep.cn/
 
 ## License
 
